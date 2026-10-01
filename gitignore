@@ -1,0 +1,6 @@
+# Chat-Preview-Build-Artefakte (aus der Claude-Chat-Vorschau, keine
+# Projektdateien - werden bei Bedarf jederzeit neu aus index.html +
+# rbf-data.test.js erzeugt, siehe RBF2027_App-Logik_Prompt.md).
+preview.html
+inline.js
+preview_inline.js
