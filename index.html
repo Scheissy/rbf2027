@@ -166,7 +166,18 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .prog-hidden-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; user-select: none; }
 .prog-hidden-toggle input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
 .prog-total-time { padding: 6px 12px; font-size: 12px; color: var(--text2); background: var(--surface); border-bottom: 1px solid var(--border); }
-.duration-select { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; padding: 3px 6px; }
+.duration-btn { display: inline-flex; align-items: center; box-sizing: border-box; height: 28px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; line-height: 1; padding: 0 10px; cursor: pointer; }
+.duration-btn:active { background: var(--surface); }
+.duration-btn-empty { color: var(--text3); }
+.duration-stepper { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.duration-step-btn { width: 52px; height: 52px; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 26px; line-height: 1; font-weight: 600; cursor: pointer; }
+.duration-step-btn:active { background: var(--bg); }
+.duration-step-btn:disabled { opacity: .35; cursor: default; }
+.duration-input { width: 96px; height: 52px; box-sizing: border-box; text-align: center; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 24px; font-weight: 700; padding: 0 4px; -moz-appearance: textfield; appearance: textfield; }
+.duration-input::-webkit-outer-spin-button, .duration-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.duration-input-suggest { color: var(--text3); font-style: italic; }
+.duration-unit { font-size: 14px; color: var(--text2); }
+.duration-preview { text-align: center; font-size: 13px; color: var(--text2); min-height: 18px; }
 .prog-row2 select { flex: 1; height: 34px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 8px; color: var(--text); font-size: 13px; }
 .prog-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 #artistList { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -199,8 +210,9 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .prog-detail { padding: 2px 12px 12px 66px; border-bottom: 1px solid var(--border); background: var(--surface2); }
 .prog-detail.collapsed { display: none; }
 .prog-detail-row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; color: var(--text2); }
-.prog-detail-row-split { gap: 8px 22px; flex-wrap: wrap; }
+.prog-detail-row-split { gap: 8px 22px; flex-wrap: wrap; align-items: flex-start; }
 .prog-detail-pair { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex-shrink: 0; }
+.prog-detail-pair .stars { align-items: center; min-height: 28px; }
 .prog-detail-pair .prog-detail-label { width: auto; text-transform: uppercase; font-size: 10px; letter-spacing: .05em; }
 .prog-detail-divider { height: 1px; background: var(--border); margin: 8px 0; }
 .prog-detail-label { width: 70px; flex-shrink: 0; color: var(--text3); }
@@ -351,6 +363,28 @@ input[type=file] { display: none; }
     </div>
     <div class="modal-body">
       <div id="commentModalText" style="font-size:14px;line-height:1.5;white-space:pre-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="durationModal" onclick="handleDurationBackdropClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="durationModalTitle">Dauer</div>
+      <button class="modal-close" onclick="closeDurationModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="duration-stepper">
+        <button type="button" class="duration-step-btn" id="durationModalMinus" aria-label="5 Minuten weniger" onclick="stepDurationModal(-5)">−</button>
+        <input type="number" class="duration-input" id="durationModalInput" inputmode="numeric" min="0" max="999" step="1" value="0" aria-label="Dauer in Minuten" onfocus="this.select()" onchange="commitDurationModalInput()">
+        <button type="button" class="duration-step-btn" aria-label="5 Minuten mehr" onclick="stepDurationModal(5)">+</button>
+        <span class="duration-unit">Min</span>
+      </div>
+      <div class="duration-preview" id="durationModalPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="form-btn form-btn-cancel" id="durationModalReset" onclick="resetDurationModal()">Zurücksetzen</button>
+      <button class="form-btn form-btn-save" id="durationModalSave" onclick="confirmDurationModal()">Fertig</button>
     </div>
   </div>
 </div>
@@ -1914,7 +1948,7 @@ function setShowRating(rid, skey, n) {
 }
 
 // ── AUFTRITTS-DAUER ─────────────────────────────────────────────────────────
-// Formatiert Minuten als "45 Min" / "1h" / "1h 15min" für Anzeige & Dropdown.
+// Formatiert Minuten als "45 Min" / "1h" / "1h 15min" für Anzeige & Eingabefeld.
 // ── PLAN-FLAG ─────────────────────────────────────────────────────────────────
 // Markiert einzelne Auftritte als "eingeplant" - direkt aus der eingeklappten
 // Zeile heraus umschaltbar (kein Aufklappen nötig), daher immer sichtbar
@@ -1943,20 +1977,141 @@ function formatDuration(min) {
   if (h === 0) return `${m} Min`;
   return m === 0 ? `${h}h` : `${h}h ${m}min`;
 }
-// Dropdown 0-120 Min in 15-Minuten-Schritten. 0 = "keine Dauer eingetragen"
-// (wie bei showRatings: 0/kein Eintrag wird beim Speichern aus dem Objekt
-// gelöscht statt als 0 gespeichert - kein separater "keine Angabe"-Zustand).
-function durationSelectHTML(rid, skeyEsc, skey) {
+// Dauer-Eingabe: In der aufgeklappten Zeile steht nur ein Button mit der
+// aktuellen Dauer; Antippen öffnet ein Modal (wie die anderen Auswahl-Dialoge)
+// mit freier Minuteneingabe (Zahlenfeld) plus -/+ im 5-Minuten-Takt.
+// 0 bzw. leeres Feld = "keine Dauer eingetragen" (wie bei showRatings: der
+// Eintrag wird beim Speichern aus dem Objekt gelöscht statt als 0 gespeichert -
+// kein separater "keine Angabe"-Zustand). Nie kleiner als 0, nach oben auf
+// DURATION_MAX_MIN begrenzt (Schutz vor Tippfehlern wie 9999).
+// Änderungen werden sofort übernommen (wie zuvor beim Dropdown) - das Modal
+// ist nur die Eingabeoberfläche, "Fertig"/✕/Hintergrund schließen es.
+const DURATION_STEP_MIN = 5;
+const DURATION_MAX_MIN = 999;
+let durationModalRid = null, durationModalSkey = null, durationModalSuggest = 0;
+function parseDurationInput(valStr) {
+  const n = Math.round(parseFloat(String(valStr).replace(',', '.')));
+  if (!isFinite(n) || n < 0) return 0;
+  return Math.min(n, DURATION_MAX_MIN);
+}
+// Dauer-VORSCHLAG aus Start- und Endzeit des Auftritts (Minuten, 0 = kein
+// Vorschlag möglich: Zeit/Endzeit fehlt oder unlesbar). Endzeit nach
+// Mitternacht (23:30 -> 00:15) wird mit +24h gerechnet. Der Vorschlag ist
+// rein eine ANZEIGE: er steht nie in showDurations und zählt deshalb weder
+// als "besucht" noch in Gesamtzeit/Auswertung/Filter - erst die bewusste
+// Übernahme im Modal ("Als Auftritt speichern") schreibt einen echten Wert.
+function suggestedDurationMin(a) {
+  if (!a || !a.time || !a.endTime) return 0;
+  const p = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t).trim()); return m ? (+m[1]) * 60 + (+m[2]) : NaN; };
+  const s = p(a.time), e = p(a.endTime);
+  if (isNaN(s) || isNaN(e)) return 0;
+  let diff = e - s;
+  if (diff <= 0) diff += 1440;
+  return (diff > 0 && diff <= DURATION_MAX_MIN) ? diff : 0;
+}
+// In der Zeile wird NUR eine echte, gespeicherte Dauer angezeigt - ohne
+// Eintrag steht dort neutral "+ Eintragen" (der Vorschlag taucht erst im
+// Modal auf).
+function durationBtnLabel(cur) {
+  return cur > 0 ? `⏱ ${formatDuration(cur)}` : '+ Eintragen';
+}
+// Button in der Detailzeile (ersetzt das frühere Dropdown).
+function durationButtonHTML(rid, skeyEsc, nameEsc, skey, sug) {
   const cur = showDurations[skey] || 0;
-  const opts = Array.from({ length: 9 }, (_, i) => i * 15).map(m =>
-    `<option value="${m}"${cur === m ? ' selected' : ''}>${formatDuration(m)}</option>`).join('');
-  return `<select class="duration-select" onchange="setShowDuration('${rid}','${skeyEsc}',this.value)">${opts}</select>`;
+  sug = sug || 0;
+  const cls = cur > 0 ? '' : ' duration-btn-empty';
+  return `<button type="button" class="duration-btn${cls}" id="${rid}-durbtn" onclick="event.stopPropagation();openDurationModal('${rid}','${skeyEsc}','${nameEsc}',${sug})">${durationBtnLabel(cur)}</button>`;
+}
+// val = echter gespeicherter Wert. Ist er 0 und gibt es einen Vorschlag, zeigt
+// das Modal den Vorschlag (gedimmt) an - OHNE ihn zu speichern.
+function syncDurationModal(val) {
+  const suggestMode = val <= 0 && durationModalSuggest > 0;
+  const shown = suggestMode ? durationModalSuggest : val;
+  const inputEl = document.getElementById('durationModalInput');
+  if (inputEl) { inputEl.value = String(shown); inputEl.classList.toggle('duration-input-suggest', suggestMode); }
+  const minusEl = document.getElementById('durationModalMinus');
+  if (minusEl) minusEl.disabled = shown <= 0;
+  const prevEl = document.getElementById('durationModalPreview');
+  if (prevEl) prevEl.textContent = suggestMode
+    ? `Vorschlag aus Start-/Endzeit (${formatDuration(shown)}) - noch nicht gespeichert`
+    : (val > 0 ? `= ${formatDuration(val)}` : 'Keine Dauer eingetragen');
+  const resetEl = document.getElementById('durationModalReset');
+  if (resetEl) resetEl.disabled = val <= 0;
+  const saveEl = document.getElementById('durationModalSave');
+  if (saveEl) saveEl.textContent = suggestMode ? 'Als Auftritt speichern' : 'Fertig';
+}
+function openDurationModal(rid, skey, name, sug) {
+  durationModalRid = rid; durationModalSkey = skey; durationModalSuggest = sug > 0 ? sug : 0;
+  document.getElementById('durationModalTitle').textContent = name ? `Dauer: ${name}` : 'Dauer';
+  syncDurationModal(showDurations[skey] || 0);
+  document.getElementById('durationModal').classList.add('open');
+}
+function closeDurationModal() {
+  // Noch nicht per "change" übernommene Eingabe sichern (Tippen -> sofort Fertig).
+  if (durationModalSkey !== null) commitDurationModalInput();
+  document.getElementById('durationModal').classList.remove('open');
+  durationModalRid = null; durationModalSkey = null; durationModalSuggest = 0;
+}
+function handleDurationBackdropClick(e) {
+  if (e.target.id === 'durationModal') closeDurationModal();
+}
+// Hauptbutton des Modals: im Vorschlags-Zustand speichert er den Vorschlag
+// als echte Dauer (= Auftritt zählt), sonst schließt er nur.
+function confirmDurationModal() {
+  if (durationModalSkey === null) return;
+  // Erst eine getippte, noch nicht per "change" übernommene Zahl sichern -
+  // sie hat Vorrang vor dem Vorschlag.
+  commitDurationModalInput();
+  if (!(showDurations[durationModalSkey] > 0) && durationModalSuggest > 0) {
+    setShowDuration(durationModalRid, durationModalSkey, durationModalSuggest);
+  }
+  closeDurationModal();
+}
+function commitDurationModalInput() {
+  if (durationModalSkey === null) return;
+  const cur = showDurations[durationModalSkey] || 0;
+  const val = parseDurationInput(document.getElementById('durationModalInput').value);
+  // Unveränderter Vorschlag im Feld = keine Eingabe -> NICHT speichern.
+  const untouchedSuggestion = cur === 0 && durationModalSuggest > 0 && val === durationModalSuggest;
+  if (val !== cur && !untouchedSuggestion) setShowDuration(durationModalRid, durationModalSkey, val);
+  else syncDurationModal(cur); // ungültige Eingabe (leer/Text) im Feld bereinigen
+}
+function stepDurationModal(delta) {
+  if (durationModalSkey === null) return;
+  // Stepper startet beim gespeicherten Wert, sonst beim angezeigten Vorschlag.
+  const base = showDurations[durationModalSkey] || durationModalSuggest || 0;
+  stepShowDuration(durationModalRid, durationModalSkey, delta, base);
+}
+function resetDurationModal() {
+  if (durationModalSkey === null) return;
+  setShowDuration(durationModalRid, durationModalSkey, 0);
+}
+// Schrittweite 5: Bei einem glatten Vielfachen von 5 wird 5 addiert/abgezogen,
+// bei einem manuell eingetragenen krummen Wert (z. B. 47) springt +/- zum
+// NÄCHSTEN 5er in die jeweilige Richtung (47 -> 50 bzw. 45). Nie unter 0,
+// nie über DURATION_MAX_MIN.
+function nextDurationStep(cur, delta) {
+  const st = DURATION_STEP_MIN;
+  const v = delta > 0 ? (Math.floor(cur / st) + 1) * st : (Math.ceil(cur / st) - 1) * st;
+  return Math.max(0, Math.min(DURATION_MAX_MIN, v));
+}
+function stepShowDuration(rid, skey, delta, base) {
+  const cur = base !== undefined ? base : (showDurations[skey] || 0);
+  setShowDuration(rid, skey, nextDurationStep(cur, delta));
 }
 function setShowDuration(rid, skey, valStr) {
-  const val = parseInt(valStr, 10);
+  const val = parseDurationInput(valStr);
   if (val > 0) showDurations[skey] = val;
   else delete showDurations[skey];
   saveToStorage();
+  // Modal (falls für diesen Auftritt offen) und Button in der Detailzeile
+  // auf den bereinigten Wert synchronisieren (z. B. -3 -> 0, 5000 -> 999).
+  if (durationModalSkey === skey) syncDurationModal(val);
+  const btnEl = document.getElementById(`${rid}-durbtn`);
+  if (btnEl) {
+    btnEl.textContent = durationBtnLabel(val);
+    btnEl.classList.toggle('duration-btn-empty', val <= 0);
+  }
   const summaryEl = document.getElementById(`${rid}-durationsummary`);
   if (summaryEl) {
     summaryEl.style.display = val > 0 ? '' : 'none';
@@ -3193,7 +3348,7 @@ function renderProgCore() {
       <div class="prog-detail-divider"></div>
       <div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
         <div class="prog-detail-pair"><span class="prog-detail-label">Auftritt</span><div class="stars stars-sm" id="${rid}-show">${progShowStarsHTML(rid,skey)}</div></div>
-        <div class="prog-detail-pair"><span class="prog-detail-label">Dauer</span>${durationSelectHTML(rid, skeyEsc, skey)}</div>
+        <div class="prog-detail-pair"><span class="prog-detail-label">Dauer</span>${durationButtonHTML(rid, skeyEsc, nj, skey, suggestedDurationMin(a))}</div>
       </div>
     </div>`;
   });
