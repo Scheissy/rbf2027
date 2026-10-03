@@ -1,4 +1,4 @@
-const CACHE = 'rbf2026-v6';
+const CACHE = 'rbf2027-v1';
 const ASSETS = ['./index.html', './rbf-data.js', './rbf-walk.js', './manifest.json', './icon-192.png', './icon-512.png'];
 // Wie lange auf das Netz gewartet wird, bevor auf den Cache zurückgefallen
 // wird (siehe fetchWithTimeout unten) - siehe dortiger Kommentar zur Begründung.
