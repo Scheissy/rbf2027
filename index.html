@@ -148,6 +148,11 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .show-loc { color: var(--accent); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .show-loc a, .prog-loc a { color: inherit; text-decoration: underline; text-decoration-color: rgba(232,164,0,.4); text-underline-offset: 2px; }
 .show-row .stars { flex-shrink: 0; }
+.show-jump { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(232,164,0,.4); text-underline-offset: 2px; }
+.show-jump:active { color: var(--accent); }
+.badge-link { cursor: pointer; }
+.jump-flash { animation: jumpFlash 1.8s ease-out; }
+@keyframes jumpFlash { 0%, 35% { background: rgba(232,164,0,.28); } 100% { background: transparent; } }
 .no-shows { font-size: 12px; color: var(--text3); font-style: italic; }
 
 /* PROG VIEW */
@@ -2460,7 +2465,7 @@ function renderArtistItem(name) {
           const skey = showKey(s);
           const srid = `art-${nj}-${idx}`;
           const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${mapsUrl(s.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(s.location)}')">${s.location}</a>` : s.location) : '<span style="opacity:.6">TBA</span>';
-          return `<div class="show-row"><div class="show-day">${s.day}</div><div class="show-time">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
+          return `<div class="show-row"><div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
         }).join('');
     } else {
       showsHtml = '<div class="no-shows">Noch keine Auftrittsdaten</div>';
@@ -2954,6 +2959,85 @@ function resetProgFilters() {
   toast('Filter zurückgesetzt ✓');
 }
 
+// ── SPRUNG ZWISCHEN KÜNSTLER- UND PROGRAMM-ÜBERSICHT ─────────────────────────
+// Scrollt ein Element innerhalb seiner Scroll-Liste nach oben (abzüglich eines
+// Versatzes, z. B. für die sticky Tages-Überschrift) und hebt es kurz hervor.
+function scrollListToEl(listId, el, offset) {
+  const list = document.getElementById(listId);
+  if (!list || !el) return;
+  list.scrollTop += (el.getBoundingClientRect().top - list.getBoundingClientRect().top) - (offset || 0);
+}
+function flashEl(el) {
+  if (!el) return;
+  el.classList.remove('jump-flash');
+  void el.offsetWidth; // Animation neu starten
+  el.classList.add('jump-flash');
+  setTimeout(() => el.classList.remove('jump-flash'), 2000);
+}
+// Künstler-Übersicht -> Programm-Übersicht: zeigt genau diesen Auftritt an.
+// Filter werden nur so weit angepasst, wie nötig, damit der Auftritt sichtbar
+// ist: erst Tag aktivieren, dann Uhrzeit-Filter lösen, zuletzt die übrigen
+// Programm-Filter zurücksetzen. Was den Auftritt nicht ausblendet, bleibt wie
+// es ist. Dauereinstellungen (ausgeblendete Locations/Künstler) werden NICHT
+// angetastet - dann gibt es stattdessen einen Hinweis und man bleibt, wo man ist.
+function jumpToProgShow(skey) {
+  const a = allProgEntries().find(x => showKey(x) === skey);
+  if (!a) { toast('Auftritt nicht gefunden', false); return; }
+  if (appSettings.hiddenLocations.includes(a.location)) {
+    toast(`Location „${a.location}“ ist in den Einstellungen ausgeblendet`, false);
+    return;
+  }
+  const d = dataMap[a.name];
+  const hiddenArtist = (d && d.ausgeblendet) || (a.isEvent && hiddenEvents[a.nid]);
+  if (hiddenArtist && !document.getElementById('progShowHidden').checked) {
+    toast('Dieser Auftritt ist ausgeblendet - in der Programm-Übersicht „Ausgeblendete anzeigen“ aktivieren', false);
+    return;
+  }
+  switchTab('programm');
+  const visible = () => getFilteredAuftritte().some(x => showKey(x) === skey);
+  if (!visible()) {
+    const dayBtn = [...document.querySelectorAll('.day-btn')].find(b => b.dataset.day === a.day);
+    if (dayBtn) dayBtn.classList.add('active');
+  }
+  if (!visible()) {
+    // "Kein Zeitfilter": von = erster Eintrag der Liste (08:00), bis = leer
+    // (bzw. letzter Eintrag, falls es keine leere Option gibt).
+    const fromSel = document.getElementById('timeFrom'), toSel = document.getElementById('timeTo');
+    if (fromSel.options.length) fromSel.selectedIndex = 0;
+    if ([...toSel.options].some(o => o.value === '')) toSel.value = '';
+    else if (toSel.options.length) toSel.selectedIndex = toSel.options.length - 1;
+  }
+  if (!visible()) clearProgFilterState();
+  renderProg();
+  const row = [...document.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
+  if (!row) { toast('Auftritt in der Programm-Übersicht nicht gefunden', false); return; }
+  const rid = (row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/) || [])[1];
+  const detail = rid && document.getElementById(`${rid}-detail`);
+  if (detail && detail.classList.contains('collapsed')) toggleProgRating(rid);
+  const header = document.querySelector('#progList .prog-day-header');
+  scrollListToEl('progList', row, header ? header.offsetHeight : 0);
+  flashEl(row);
+}
+// Programm-Übersicht -> Künstler-Übersicht: klappt den Künstler auf und
+// scrollt hin. Künstler-Filter werden nur zurückgesetzt, wenn sie ihn
+// ausblenden; ist er selbst ausgeblendet, wird dafür der Filter "Ausgeblendet"
+// der Künstler-Übersicht gesetzt (so sind ausgeblendete Künstler dort sichtbar).
+function jumpToArtist(name) {
+  const d = dataMap[name];
+  if (!d) { toast('Künstler nicht in der Liste gefunden', false); return; }
+  switchTab('kuenstler');
+  if (!getFiltered().some(x => x.name === name)) {
+    resetKuenstlerFilters();
+    if (d.ausgeblendet) statsAusgeblendetFilter = true;
+  }
+  expandedRows.add(name);
+  render();
+  const item = document.getElementById(`item-${name}`);
+  if (!item) { toast('Künstler in der Übersicht nicht gefunden', false); return; }
+  scrollListToEl('artistList', item, 0);
+  flashEl(item.querySelector('.artist-row'));
+}
+
 // Springt auf den heutigen Festivaltag (falls es einer ist) und die aktuelle
 // Uhrzeit minus Puffer (30 Min, siehe getFestivalContext), damit gerade
 // laufende Shows nicht rausgefiltert werden.
@@ -3331,14 +3415,15 @@ function renderProgCore() {
         ${appSettings.showListening ? `<div class="prog-detail-pair"><span class="prog-detail-label">Listening</span><div class="stars stars-sm" id="${rid}-rl">${progStarsHTML(rid,a.name,'rl')}</div></div>` : ''}
       </div>
       <div class="prog-detail-row" onclick="event.stopPropagation()"><span class="prog-detail-label">Gesehen</span>${seenButtonsHTML(a.name, d, rid)}</div>
-      <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
+      <div style="display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;margin-top:6px">
         <a class="prog-detail-link" style="margin-top:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">↗ RBF-Seite öffnen</a>
+        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();jumpToArtist('${nj}')">👤 Zum Künstler</button>
         <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleHidden('${nj}')">${d.ausgeblendet ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
       </div>` : (a.isEvent ? `<div class="prog-detail-row">
         <div class="detail-label">${a.kategorie === 'Musik' ? '🎵' : '🎪'} Sonderveranstaltung · ${a.kategorie}</div>
         ${a.acts && a.acts.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${a.acts.map(n => {
           const dd = dataMap[n];
-          return dd ? `<span class="badge ${genderBadgeClass(dd.geschlecht)}" style="font-size:10px">${n}</span>` : `<span class="badge" style="font-size:10px;background:var(--surface2);color:var(--text2)">${n}</span>`;
+          return dd ? `<span class="badge badge-link ${genderBadgeClass(dd.geschlecht)}" style="font-size:10px" role="button" title="Zum Künstler" onclick="event.stopPropagation();jumpToArtist('${escJs(n)}')">${n}</span>` : `<span class="badge" style="font-size:10px;background:var(--surface2);color:var(--text2)">${n}</span>`;
         }).join('')}</div>` : ''}
       </div>
       <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
