@@ -144,6 +144,11 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .show-row { display: flex; flex-wrap: nowrap; gap: 6px; font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--border); align-items: center; }
 .show-row:last-child { border-bottom: none; }
 .show-day { color: var(--text2); width: 56px; flex-shrink: 0; }
+/* Ziel-Flag am Anfang der Auftrittszeile: gleiche Größe wie die anderen kleinen
+   Zeilen-Icons (18px), damit Tag/Zeit/Location nur minimal nach rechts rücken. */
+.show-row .plan-flag-btn { width: 18px; height: 18px; font-size: 12px; margin-right: -2px; }
+/* Anzeige in der Künstlerzeile - Größe/Abstand wie Kommentar- und Sound-Icon */
+.plan-ind { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 12px; flex-shrink: 0; vertical-align: middle; }
 .show-time { color: var(--text); width: 76px; flex-shrink: 0; white-space: nowrap; font-size: 11px; }
 .show-loc { color: var(--accent); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .show-loc a, .prog-loc a { color: inherit; text-decoration: underline; text-decoration-color: rgba(232,164,0,.4); text-underline-offset: 2px; }
@@ -2000,19 +2005,36 @@ function setShowRating(rid, skey, n) {
 // erscheint). Grau/gedimmt = nicht markiert, volle Farbe = markiert.
 function planFlagHTML(rid, skey) {
   const flagged = !!planFlags[skey];
-  return `<button type="button" class="plan-flag-btn${flagged ? ' active' : ''}" id="${rid}-planflag" onclick="event.stopPropagation();togglePlanFlag('${rid}','${escJs(skey)}')" title="${flagged ? 'Als Ziel markiert' : 'Als Ziel markieren'}">🎯</button>`;
+  return `<button type="button" class="plan-flag-btn${flagged ? ' active' : ''}" id="${rid}-planflag" data-skey="${escapeHtml(skey)}" onclick="event.stopPropagation();togglePlanFlag('${rid}','${escJs(skey)}')" title="${flagged ? 'Als Ziel markiert' : 'Als Ziel markieren'}">🎯</button>`;
 }
 function togglePlanFlag(rid, skey) {
   const wasFlagged = !!planFlags[skey];
   if (wasFlagged) delete planFlags[skey];
   else planFlags[skey] = true;
   saveToStorage();
+  // Das Ziel-Flag gehört zum einzelnen Auftritt und wird in beiden Übersichten
+  // angezeigt (Programm: links unter der Zeit, Künstler: am Anfang der
+  // Auftrittszeile + kleines Ziel-Icon in der Künstlerzeile). Deshalb werden
+  // ALLE Buttons dieses Auftritts und die Künstlerzeile mitgezogen, egal von
+  // wo aus umgeschaltet wurde.
+  document.querySelectorAll('.plan-flag-btn').forEach(btn => {
+    if (btn.dataset.skey !== skey) return;
+    btn.outerHTML = planFlagHTML(btn.id.replace(/-planflag$/, ''), skey);
+  });
+  const entry = auftritte.find(x => showKey(x) === skey);
+  if (entry && dataMap[entry.name]) renderArtistItem(entry.name);
   // Wird das Flag entfernt, während der "Nur als Ziel markierte"-Filter aktiv
-  // ist, muss die Zeile aus der Liste verschwinden -> volle Neu-Filterung
-  // nötig (gleiches Muster wie beim Dauer-Filter).
-  if (document.getElementById('fProgPlanned').checked && wasFlagged) { renderProg(); return; }
-  const el = document.getElementById(`${rid}-planflag`);
-  if (el) el.outerHTML = planFlagHTML(rid, skey);
+  // ist, muss die Zeile aus der Programm-Liste verschwinden -> volle
+  // Neu-Filterung nötig (gleiches Muster wie beim Dauer-Filter).
+  if (document.getElementById('fProgPlanned').checked && wasFlagged) renderProg();
+}
+// Kleines Ziel-Icon in der (auch zugeklappten) Künstlerzeile: erscheint, sobald
+// mindestens ein Auftritt des Künstlers als Ziel markiert ist. Reine Anzeige -
+// der Tipp klappt wie überall in der Zeile die Auftritte auf, umgeschaltet wird
+// in der Auftrittszeile.
+function planIconHTML(name) {
+  const any = auftritte.some(a => a.name === name && planFlags[showKey(a)]);
+  return any ? `<span class="plan-ind" title="Mindestens ein Auftritt ist als Ziel markiert">🎯</span>` : '';
 }
 
 function formatDuration(min) {
@@ -2494,6 +2516,7 @@ function renderArtistItem(name) {
     ${soundRefIconHTML(name)}
     ${d.ausgeblendet ? '<span class="badge b-hidden">🙈</span>' : ''}
     ${d.reinhoeren ? '<span class="badge b-reinhoeren">🎧</span>' : ''}
+    ${planIconHTML(name)}
     <div class="artist-country">${shortenHerkunft(d.herkunft)}</div>
     <div class="badge ${gc}" title="${d.geschlecht}">${shortenGeschlecht(d.geschlecht)}</div>
   </div>`;
@@ -2505,7 +2528,7 @@ function renderArtistItem(name) {
           const skey = showKey(s);
           const srid = `art-${nj}-${idx}`;
           const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${mapsUrl(s.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(s.location)}')">${s.location}</a>` : s.location) : '<span style="opacity:.6">TBA</span>';
-          return `<div class="show-row"><div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
+          return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
         }).join('');
     } else {
       showsHtml = '<div class="no-shows">Noch keine Auftrittsdaten</div>';
