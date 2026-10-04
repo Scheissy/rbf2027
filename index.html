@@ -193,6 +193,11 @@ body.has-jump-back .toast { bottom: calc(var(--safe-bottom) + 114px); }
 .prog-day-header { padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; background: var(--bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
 .prog-item { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .prog-item-hidden { opacity: .55; }
+/* Bereits gesehener Künstler (Status "Gesehen", nicht "Bekannt"): grüner Name
+   + grüner Seitenstreifen. Streifen per inset box-shadow, damit sich das
+   Layout (Zeilenbreite/Ausrichtung) nicht verschiebt. */
+.prog-item-seen { box-shadow: inset 3px 0 0 var(--green); }
+.prog-item-seen .prog-name { color: var(--green); }
 .prog-item:active { background: var(--surface2); }
 .prog-time-col { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 44px; flex-shrink: 0; padding-top: 1px; }
 .prog-time-val { font-size: 13px; font-weight: 700; color: var(--accent); text-align: center; }
@@ -2414,6 +2419,9 @@ function seenButtonsHTML(name, d, progRid) {
 // Zeilen dieses Künstlers (Gesehen-Status gilt künstlerweit, nicht pro Show -
 // bei mehreren gleichzeitig sichtbaren Auftritten sonst inkonsistent bis zum
 // nächsten Reload).
+// Markierung "bereits gesehen" in der Programm-Übersicht: nur der Status
+// "Gesehen" zählt, "Bekannt" bewusst nicht.
+function isArtistSeen(d) { return !!d && d.gesehen === 'ja'; }
 function setSeenProg(rid, name, val) {
   if (!dataMap[name]) return;
   const d = dataMap[name];
@@ -2423,6 +2431,9 @@ function setSeenProg(rid, name, val) {
   (progRidsByName[name] || [rid]).forEach(r => {
     const el = document.getElementById(`${r}-seen`);
     if (el) el.outerHTML = seenButtonsHTML(name, d, r);
+    // Namensfarbe + Seitenstreifen aller Zeilen dieses Künstlers mitziehen
+    const rowEl = document.getElementById(`${r}-row`);
+    if (rowEl) rowEl.classList.toggle('prog-item-seen', isArtistSeen(d));
   });
 }
 
@@ -3518,7 +3529,8 @@ function renderProgCore() {
     // data-skey: stabiler Zeilen-Schlüssel für die Scroll-Anker-Erhaltung in
     // renderProg() (siehe dort) - im Gegensatz zu "rid" bleibt er unabhängig
     // von der Position in der (durch Filter veränderlichen) Liste gleich.
-    html += `<div class="prog-item${isHidden ? ' prog-item-hidden' : ''}" data-skey="${escapeHtml(skey)}" onclick="toggleProgRating('${rid}')">
+    const isSeen = !a.isEvent && isArtistSeen(d);
+    html += `<div class="prog-item${isHidden ? ' prog-item-hidden' : ''}${isSeen ? ' prog-item-seen' : ''}" id="${rid}-row" data-skey="${escapeHtml(skey)}" onclick="toggleProgRating('${rid}')">
       <div class="prog-time-col">
         <div class="prog-time-val">${a.time ? a.time + (a.endTime ? `<br><span style="opacity:.55;font-size:11px">–${a.endTime}</span>` : '') : '<span style="opacity:.55">TBA</span>'}</div>
         ${planFlagHTML(rid, skey)}
