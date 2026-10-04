@@ -193,11 +193,13 @@ body.has-jump-back .toast { bottom: calc(var(--safe-bottom) + 114px); }
 .prog-day-header { padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; background: var(--bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
 .prog-item { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .prog-item-hidden { opacity: .55; }
-/* Bereits gesehener Künstler (Status "Gesehen", nicht "Bekannt"): grüner Name
-   + grüner Seitenstreifen. Streifen per inset box-shadow, damit sich das
-   Layout (Zeilenbreite/Ausrichtung) nicht verschiebt. */
-.prog-item-seen { box-shadow: inset 3px 0 0 var(--green); }
-.prog-item-seen .prog-name { color: var(--green); }
+/* Künstler mit mindestens einem besuchten Auftritt (Dauer eingetragen ODER
+   Auftritts-Bewertung gesetzt, siehe isShowVisited): ALLE Zeilen dieses
+   Künstlers bekommen grünen Namen + grünen Seitenstreifen. Streifen per inset
+   box-shadow, damit sich das Layout (Zeilenbreite/Ausrichtung) nicht
+   verschiebt. Bewusst unabhängig vom Künstler-Status "Gesehen"/"Bekannt". */
+.prog-item-visited { box-shadow: inset 3px 0 0 var(--green); }
+.prog-item-visited .prog-name { color: var(--green); }
 .prog-item:active { background: var(--surface2); }
 .prog-time-col { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 44px; flex-shrink: 0; padding-top: 1px; }
 .prog-time-val { font-size: 13px; font-weight: 700; color: var(--accent); text-align: center; }
@@ -1088,6 +1090,13 @@ function isShowVisited(a) {
   const k = showKey(a);
   return (showDurations[k] || 0) > 0 || (showRatings[k] || 0) > 0;
 }
+// Namen aller Künstler/Veranstaltungen mit mindestens EINEM besuchten Auftritt.
+// Basis ist bewusst die ungefilterte Auswertungs-Liste: Ein besuchter Auftritt
+// markiert die übrigen Auftritte des Künstlers auch dann, wenn er selbst durch
+// Programm-Filter (Tag, Uhrzeit, Location ...) gerade nicht in der Liste steht.
+function artistsWithVisitedShows() {
+  return new Set(auswertungEntries().filter(isShowVisited).map(a => a.name));
+}
 // Basis der Auswertung: ALLE Auftritte (+ Sonderveranstaltungen, solange der
 // globale Settings-Schalter an ist) - bewusst ungefiltert, d.h. weder
 // Programm-Filter noch dauerhaft ausgeblendete Locations noch Ausblenden-
@@ -1951,6 +1960,21 @@ function updateShowMetaRowVisibility(rid) {
   const visible = (ss && ss.style.display !== 'none') || (ds && ds.style.display !== 'none');
   row.style.display = visible ? '' : 'none';
 }
+// Zeilen-Markierung "besucht" (Namensfarbe + Seitenstreifen) nach einer
+// Änderung von Dauer/Auftritts-Bewertung ohne Neu-Rendern nachziehen.
+function updateProgRowVisited(rid, skey) {
+  // Die Markierung hängt am Künstler: alle sichtbaren Zeilen mit demselben
+  // Namen werden mitgezogen, nicht nur die bearbeitete.
+  const entry = auswertungEntries().find(x => showKey(x) === skey);
+  const name = entry ? entry.name : null;
+  const visited = name !== null ? artistsWithVisitedShows().has(name)
+    : ((showDurations[skey] || 0) > 0 || (showRatings[skey] || 0) > 0);
+  const rids = (name !== null && progRidsByName[name]) || [rid];
+  rids.forEach(r => {
+    const rowEl = document.getElementById(`${r}-row`);
+    if (rowEl) rowEl.classList.toggle('prog-item-visited', visited);
+  });
+}
 function setShowRating(rid, skey, n) {
   showRatings[skey] = (showRatings[skey] === n) ? 0 : n;
   if (!showRatings[skey]) delete showRatings[skey];
@@ -1964,6 +1988,7 @@ function setShowRating(rid, skey, n) {
     summaryEl.innerHTML = miniStarsShow(val);
   }
   updateShowMetaRowVisibility(rid);
+  updateProgRowVisited(rid, skey);
 }
 
 // ── AUFTRITTS-DAUER ─────────────────────────────────────────────────────────
@@ -2137,6 +2162,7 @@ function setShowDuration(rid, skey, valStr) {
     summaryEl.textContent = val > 0 ? `⏱ ${formatDuration(val)}` : '';
   }
   updateShowMetaRowVisibility(rid);
+  updateProgRowVisited(rid, skey);
   // Wird gerade die Dauer entfernt (auf 0 gesetzt) UND der "Nur mit Dauer"-
   // Filter ist aktiv, muss die Zeile aus der Liste verschwinden -> volle
   // Neu-Filterung nötig.
@@ -2419,9 +2445,6 @@ function seenButtonsHTML(name, d, progRid) {
 // Zeilen dieses Künstlers (Gesehen-Status gilt künstlerweit, nicht pro Show -
 // bei mehreren gleichzeitig sichtbaren Auftritten sonst inkonsistent bis zum
 // nächsten Reload).
-// Markierung "bereits gesehen" in der Programm-Übersicht: nur der Status
-// "Gesehen" zählt, "Bekannt" bewusst nicht.
-function isArtistSeen(d) { return !!d && d.gesehen === 'ja'; }
 function setSeenProg(rid, name, val) {
   if (!dataMap[name]) return;
   const d = dataMap[name];
@@ -2431,9 +2454,6 @@ function setSeenProg(rid, name, val) {
   (progRidsByName[name] || [rid]).forEach(r => {
     const el = document.getElementById(`${r}-seen`);
     if (el) el.outerHTML = seenButtonsHTML(name, d, r);
-    // Namensfarbe + Seitenstreifen aller Zeilen dieses Künstlers mitziehen
-    const rowEl = document.getElementById(`${r}-row`);
-    if (rowEl) rowEl.classList.toggle('prog-item-seen', isArtistSeen(d));
   });
 }
 
@@ -3494,6 +3514,7 @@ function renderProgCore() {
   const list = document.getElementById('progList');
   openProgRid = null;
   progRidsByName = {};
+  const visitedNames = artistsWithVisitedShows();
   updateLocFilter();
   updateProgGenreChips();
   updateProgFiltersActiveIndicator();
@@ -3529,8 +3550,8 @@ function renderProgCore() {
     // data-skey: stabiler Zeilen-Schlüssel für die Scroll-Anker-Erhaltung in
     // renderProg() (siehe dort) - im Gegensatz zu "rid" bleibt er unabhängig
     // von der Position in der (durch Filter veränderlichen) Liste gleich.
-    const isSeen = !a.isEvent && isArtistSeen(d);
-    html += `<div class="prog-item${isHidden ? ' prog-item-hidden' : ''}${isSeen ? ' prog-item-seen' : ''}" id="${rid}-row" data-skey="${escapeHtml(skey)}" onclick="toggleProgRating('${rid}')">
+    const visited = visitedNames.has(a.name);   // Künstler mit >= 1 besuchtem Auftritt
+    html += `<div class="prog-item${isHidden ? ' prog-item-hidden' : ''}${visited ? ' prog-item-visited' : ''}" id="${rid}-row" data-skey="${escapeHtml(skey)}" onclick="toggleProgRating('${rid}')">
       <div class="prog-time-col">
         <div class="prog-time-val">${a.time ? a.time + (a.endTime ? `<br><span style="opacity:.55;font-size:11px">–${a.endTime}</span>` : '') : '<span style="opacity:.55">TBA</span>'}</div>
         ${planFlagHTML(rid, skey)}
