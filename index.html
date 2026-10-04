@@ -224,6 +224,20 @@ body.has-jump-back .toast { bottom: calc(var(--safe-bottom) + 114px); }
 .prog-avg-badge { display: flex; align-items: center; justify-content: center; gap: 1px; flex-shrink: 0; visibility: hidden; }
 .prog-avg-badge.has-rating { visibility: visible; }
 .prog-rating-arrow { font-size: 11px; color: var(--text3); flex-shrink: 0; padding-top: 2px; }
+/* Hinweis "weitere Termine danach" - bewusst klein und abgeblendet, unter der
+   Bewertung/dem Aufklapp-Pfeil in der rechten Spalte */
+.prog-more-ind { font-size: 11px; line-height: 1; opacity: .55; flex-shrink: 0; }
+/* Terminliste in der Detailansicht (nur bei Künstlern mit mehreren Terminen) */
+.prog-terms { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--border); }
+.prog-terms-title { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+.prog-term { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 0; color: var(--text); cursor: pointer; }
+.prog-term .t-day { width: 52px; flex-shrink: 0; color: var(--text2); }
+.prog-term .t-time { width: 74px; flex-shrink: 0; }
+.prog-term .t-loc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prog-term .t-icons { display: flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 11px; color: var(--text2); }
+.prog-term.past { opacity: .45; }
+.prog-term.current { color: var(--accent); font-weight: 600; cursor: default; }
+.prog-term.current .t-day { color: var(--accent); }
 .prog-right-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
 .plan-flag-btn { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent; font-size: 14px; cursor: pointer; padding: 0; flex-shrink: 0; color: var(--text3); opacity: 0.45; filter: grayscale(1); }
 .plan-flag-btn.active { color: var(--accent); opacity: 1; filter: none; }
@@ -1979,6 +1993,7 @@ function updateProgRowVisited(rid, skey) {
     const rowEl = document.getElementById(`${r}-row`);
     if (rowEl) rowEl.classList.toggle('prog-item-visited', visited);
   });
+  refreshTermineLists(skey);
 }
 function setShowRating(rid, skey, n) {
   showRatings[skey] = (showRatings[skey] === n) ? 0 : n;
@@ -2023,6 +2038,7 @@ function togglePlanFlag(rid, skey) {
   });
   const entry = auftritte.find(x => showKey(x) === skey);
   if (entry && dataMap[entry.name]) renderArtistItem(entry.name);
+  refreshTermineLists(skey);
   // Wird das Flag entfernt, während der "Nur als Ziel markierte"-Filter aktiv
   // ist, muss die Zeile aus der Programm-Liste verschwinden -> volle
   // Neu-Filterung nötig (gleiches Muster wie beim Dauer-Filter).
@@ -3037,6 +3053,69 @@ function flashEl(el) {
   el.classList.add('jump-flash');
   setTimeout(() => el.classList.remove('jump-flash'), 2000);
 }
+// ── WEITERE TERMINE EINES KÜNSTLERS (Programm-Übersicht) ──────────────────────
+// Alle Termine eines Künstlers, chronologisch (Tag, Uhrzeit; TBA ans Ende des
+// Tages, bei Gleichstand Datenreihenfolge). Bewusst ungefiltert: auch Termine,
+// die durch Tag-/Zeit-/Location-Filter gerade nicht in der Liste stehen.
+function artistShowsSorted(name) {
+  return auftritte.map((x, i) => ({ x, i })).filter(o => o.x.name === name)
+    .sort((p, q) => dayIndex(p.x.day) - dayIndex(q.x.day) || timeSortValue(p.x.time) - timeSortValue(q.x.time) || p.i - q.i)
+    .map(o => o.x);
+}
+// true, wenn der Künstler NACH diesem Termin noch mindestens einen weiteren hat
+// (beim letzten/einzigen Termin und bei Sonderveranstaltungen: false).
+function hasLaterShow(a) {
+  if (a.isEvent) return false;
+  const list = artistShowsSorted(a.name), k = showKey(a);
+  const idx = list.findIndex(x => showKey(x) === k);
+  return idx >= 0 && idx < list.length - 1;
+}
+// Termin bereits vorbei (Europe/Berlin, Nachtprogramm zählt noch zum Vortag)?
+// Nur WÄHREND des Festivals - davor/danach wird bewusst nichts als vorbei
+// gewertet (gleiche Logik wie getPastFestivalDays()).
+function isShowPast(a) {
+  const eff = getEffectiveFestivalDate();
+  const todayLabel = FESTIVAL_DAYS[`${eff.month}-${eff.day}`];
+  if (!todayLabel) return false;
+  const ti = dayIndex(todayLabel), si = dayIndex(a.day);
+  if (si < ti) return true;
+  if (si > ti || !a.time) return false;
+  const now = getBerlinNow();
+  const nowMin = (now.hour < 5 ? now.hour + 24 : now.hour) * 60 + now.minute;
+  return timeSortValue(a.endTime || a.time) < nowMin;
+}
+let progEntryByRid = {};
+function termineInnerHTML(a) {
+  const list = artistShowsSorted(a.name);
+  if (a.isEvent || list.length < 2) return '';
+  const curKey = showKey(a);
+  const rows = list.map(x => {
+    const k = showKey(x);
+    const time = x.time ? x.time + (x.endTime ? '–' + x.endTime : '') : 'TBA';
+    if (k === curKey) return `<div class="prog-term current"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">◂ Dieser Termin</span></div>`;
+    const dur = showDurations[k] || 0, rat = showRatings[k] || 0;
+    const icons = (planFlags[k] ? '<span title="Ziel">🎯</span>' : '')
+      + (dur > 0 ? `<span>⏱ ${formatDuration(dur)}</span>` : '')
+      + (rat > 0 ? miniStarsShow(rat) : '');
+    return `<div class="prog-term${isShowPast(x) ? ' past' : ''}" role="button" onclick="event.stopPropagation();jumpToProgShow('${escJs(k)}', true)"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">${x.location || 'TBA'}</span><span class="t-icons">${icons}</span></div>`;
+  }).join('');
+  return `<div class="prog-terms-title">Termine</div>${rows}`;
+}
+function termineSectionHTML(a, rid) {
+  const inner = termineInnerHTML(a);
+  return inner ? `<div class="prog-terms" id="${rid}-terms" onclick="event.stopPropagation()">${inner}</div>` : '';
+}
+// Zieht die Terminlisten ALLER sichtbaren Zeilen des Künstlers nach, wenn sich
+// bei einem seiner Termine Ziel/Dauer/Bewertung geändert hat.
+function refreshTermineLists(skey) {
+  const entry = auftritte.find(x => showKey(x) === skey);
+  if (!entry) return;
+  (progRidsByName[entry.name] || []).forEach(r => {
+    const el = document.getElementById(`${r}-terms`), a = progEntryByRid[r];
+    if (el && a) el.innerHTML = termineInnerHTML(a);
+  });
+}
+
 // ── ZURÜCK-CHIP ────────────────────────────────────────────────────────────
 // Nach einem Sprung zwischen Künstler- und Programm-Übersicht schwebt unten ein
 // Chip "← Künstler: Nova Frequenz" - ein Tipp bringt an die Ausgangsstelle
@@ -3065,16 +3144,49 @@ const JUMP_ORIGIN_LISTS = {
 // Muss VOR dem switchTab() des Sprungs aufgerufen werden (liest den noch
 // sichtbaren Ausgangs-Tab). null = kein Chip (z. B. Sprung innerhalb desselben
 // Tabs oder Start in einem anderen Tab).
-function captureJumpOrigin(targetTab, subject) {
+function captureJumpOrigin(targetTab, subject, allowSameTab) {
   const from = currentTab;
   const cfg = JUMP_ORIGIN_LISTS[from];
-  if (!cfg || from === targetTab) return null;
+  if (!cfg || (from === targetTab && !allowSameTab)) return null;
   const origin = { tab: from, label: cfg.label, subject: subject || '', anchor: captureScrollAnchor(cfg.listId, cfg.isRowEl, cfg.keyOf), openKey: null };
   if (from === 'programm' && openProgRid) {
     const row = [...document.querySelectorAll('#progList .prog-item')].find(el => (el.getAttribute('onclick') || '').includes(`'${openProgRid}'`));
     if (row) origin.openKey = row.dataset.skey;
   }
+  // Sprung INNERHALB der Programm-Übersicht (z. B. aus der Terminliste): hier
+  // können die Programm-Filter durch den Sprung verändert werden (Ausgangs-
+  // und Ziel-Liste sind dieselbe). Deshalb Filter vorher merken und beim
+  // Zurück wiederherstellen - aber nur, wenn sie seit dem Sprung nicht vom
+  // Nutzer weiter verändert wurden (siehe jumpBack()).
+  if (from === targetTab) {
+    origin.sameTab = true;
+    origin.snapBefore = snapshotProgFilters();
+    const e = origin.openKey ? allProgEntries().find(x => showKey(x) === origin.openKey) : null;
+    origin.label = 'Termin';
+    origin.subject = e ? `${e.day}${e.time ? ', ' + e.time : ''}` : (subject || '');
+  }
   return origin;
+}
+function snapshotProgFilters() {
+  return {
+    days: [...document.querySelectorAll('.day-btn')].filter(b => b.classList.contains('active')).map(b => b.dataset.day),
+    from: document.getElementById('timeFrom').value, to: document.getElementById('timeTo').value,
+    locs: [...selectedLocs], genres: [...progSelectedGenres],
+    status: document.getElementById('fProgStatus').value,
+    dur: document.getElementById('fProgDuration').checked, planned: document.getElementById('fProgPlanned').checked,
+    rating: progRatingFilter, showRating: progShowRatingFilter,
+  };
+}
+function applyProgFilters(f) {
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', f.days.includes(b.dataset.day)));
+  document.getElementById('timeFrom').value = f.from; document.getElementById('timeTo').value = f.to;
+  selectedLocs.clear(); f.locs.forEach(l => selectedLocs.add(l));
+  progSelectedGenres.clear(); f.genres.forEach(g => progSelectedGenres.add(g));
+  updateProgGenreChips();
+  document.getElementById('fProgStatus').value = f.status;
+  document.getElementById('fProgDuration').checked = f.dur; document.getElementById('fProgPlanned').checked = f.planned;
+  progRatingFilter = f.rating; renderProgRatingStars();
+  progShowRatingFilter = f.showRating; renderProgShowRatingStars();
 }
 function showJumpBackChip(origin) {
   jumpOrigin = origin || null;
@@ -3122,6 +3234,7 @@ function jumpBack() {
   const o = jumpOrigin;
   hideJumpBackChip();
   if (!o) return;
+  if (o.sameTab && o.snapAfter && JSON.stringify(snapshotProgFilters()) === o.snapAfter) applyProgFilters(o.snapBefore);
   switchTab(o.tab); // Programm rendert dabei neu, Künstler-Liste bleibt bestehen
   const cfg = JUMP_ORIGIN_LISTS[o.tab];
   const findRow = key => [...document.getElementById(cfg.listId).children].find(el => cfg.isRowEl(el) && cfg.keyOf(el) === key);
@@ -3148,7 +3261,7 @@ function jumpBack() {
 // Programm-Filter zurücksetzen. Was den Auftritt nicht ausblendet, bleibt wie
 // es ist. Dauereinstellungen (ausgeblendete Locations/Künstler) werden NICHT
 // angetastet - dann gibt es stattdessen einen Hinweis und man bleibt, wo man ist.
-function jumpToProgShow(skey) {
+function jumpToProgShow(skey, keepOrigin) {
   const a = allProgEntries().find(x => showKey(x) === skey);
   if (!a) { toast('Auftritt nicht gefunden', false); return; }
   if (appSettings.hiddenLocations.includes(a.location)) {
@@ -3161,7 +3274,7 @@ function jumpToProgShow(skey) {
     toast('Dieser Auftritt ist ausgeblendet - in der Programm-Übersicht „Ausgeblendete anzeigen“ aktivieren', false);
     return;
   }
-  const origin = captureJumpOrigin('programm', a.name);
+  const origin = captureJumpOrigin('programm', a.name, keepOrigin === true);
   switchTab('programm');
   showJumpBackChip(origin);
   const visible = () => getFilteredAuftritte().some(x => showKey(x) === skey);
@@ -3187,6 +3300,7 @@ function jumpToProgShow(skey) {
   const header = document.querySelector('#progList .prog-day-header');
   scrollListToEl('progList', row, header ? header.offsetHeight : 0);
   flashEl(row);
+  if (origin && origin.sameTab) origin.snapAfter = JSON.stringify(snapshotProgFilters());
   startJumpScrollWatch('progList', () => [...document.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey));
 }
 // Programm-Übersicht -> Künstler-Übersicht: klappt den Künstler auf und
@@ -3537,6 +3651,7 @@ function renderProgCore() {
   const list = document.getElementById('progList');
   openProgRid = null;
   progRidsByName = {};
+  progEntryByRid = {};
   const visitedNames = artistsWithVisitedShows();
   updateLocFilter();
   updateProgGenreChips();
@@ -3561,6 +3676,7 @@ function renderProgCore() {
     const rid = `progr-${i}`;
     if (!progRidsByName[a.name]) progRidsByName[a.name] = [];
     progRidsByName[a.name].push(rid);
+    progEntryByRid[rid] = a;
     const skey = showKey(a);
     const showRating = showRatings[skey] || 0;
     const duration = showDurations[skey];
@@ -3591,6 +3707,7 @@ function renderProgCore() {
       <div class="prog-right-col">
         <div class="prog-avg-badge${vals.length ? ' has-rating' : ''}" id="${rid}-summary" title="${vals.length ? `Künstler-Ø-Bewertung: ${avg.toFixed(1)}` : ''}">${miniStars(avg)}</div>
         <div class="prog-rating-arrow" id="${rid}-arrow">▸</div>
+        ${hasLaterShow(a) ? '<div class="prog-more-ind" title="Weitere Termine danach" aria-label="Weitere Termine danach">📅</div>' : ''}
       </div>
     </div>
     <div class="prog-detail collapsed" id="${rid}-detail">
@@ -3619,6 +3736,7 @@ function renderProgCore() {
         <div class="prog-detail-pair"><span class="prog-detail-label">Auftritt</span><div class="stars stars-sm" id="${rid}-show">${progShowStarsHTML(rid,skey)}</div></div>
         <div class="prog-detail-pair"><span class="prog-detail-label">Dauer</span>${durationButtonHTML(rid, skeyEsc, nj, skey, suggestedDurationMin(a))}</div>
       </div>
+      ${termineSectionHTML(a, rid)}
     </div>`;
   });
   list.innerHTML = html;
