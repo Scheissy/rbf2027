@@ -151,6 +151,10 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .show-jump { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(232,164,0,.4); text-underline-offset: 2px; }
 .show-jump:active { color: var(--accent); }
 .badge-link { cursor: pointer; }
+.jump-back-chip { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 64px); z-index: 50; display: flex; align-items: stretch; max-width: calc(100vw - 24px); background: var(--surface); border: 1px solid var(--accent); border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.35); overflow: hidden; }
+.jump-back-main { background: none; border: 0; color: var(--accent); font-size: 13px; font-weight: 600; padding: 8px 8px 8px 14px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.jump-back-x { background: none; border: 0; border-left: 1px solid var(--border); color: var(--text3); font-size: 12px; padding: 8px 12px; cursor: pointer; }
+body.has-jump-back .toast { bottom: calc(var(--safe-bottom) + 114px); }
 .jump-flash { animation: jumpFlash 1.8s ease-out; }
 @keyframes jumpFlash { 0%, 35% { background: rgba(232,164,0,.28); } 100% { background: transparent; } }
 .no-shows { font-size: 12px; color: var(--text3); font-style: italic; }
@@ -768,6 +772,8 @@ input[type=file] { display: none; }
     <div>Settings</div>
   </div>
 </div>
+
+<div class="jump-back-chip" id="jumpBackChip" style="display:none"><button type="button" class="jump-back-main" id="jumpBackLabel" onclick="jumpBack()"></button><button type="button" class="jump-back-x" aria-label="Zurück-Hinweis schließen" onclick="dismissJumpBack()">✕</button></div>
 
 <div class="toast" id="toast"></div>
 
@@ -1473,6 +1479,9 @@ function setAuswertungSort(mode) {
 }
 
 function switchTab(tab) {
+  // Jeder Tabwechsel beendet den Zurück-Chip (siehe jumpBack()); die Sprung-
+  // Funktionen setzen ihn erst NACH ihrem switchTab() neu.
+  hideJumpBackChip();
   currentTab = tab;
   ['kuenstler','programm','auswertung','io'].forEach(t => {
     const el = document.getElementById(`view-${t}`);
@@ -2974,6 +2983,111 @@ function flashEl(el) {
   el.classList.add('jump-flash');
   setTimeout(() => el.classList.remove('jump-flash'), 2000);
 }
+// ── ZURÜCK-CHIP ────────────────────────────────────────────────────────────
+// Nach einem Sprung zwischen Künstler- und Programm-Übersicht schwebt unten ein
+// Chip "← Künstler: Nova Frequenz" - ein Tipp bringt an die Ausgangsstelle
+// zurück (gleicher Tab, gleiche Scrollstelle, ggf. gleiche aufgeklappte Zeile).
+// Filter werden dabei bewusst NICHT wiederhergestellt: Sprünge gehen immer in
+// den ANDEREN Tab und verändern nur dessen Filter - die Filter des
+// Ausgangs-Tabs sind bei der Rückkehr unverändert. Es wird nur eine Ebene
+// gemerkt (ein neuer Sprung ersetzt die alte Stelle). Der Chip verschwindet
+// beim Tipp, über das ✕ und bei jedem (manuellen) Tabwechsel; kein Timer.
+let jumpOrigin = null;
+function captureScrollAnchor(listId, isRowEl, keyOf) {
+  const list = document.getElementById(listId);
+  if (!list) return null;
+  const lr = list.getBoundingClientRect();
+  for (const item of list.children) {
+    if (!isRowEl(item)) continue;
+    const r = item.getBoundingClientRect();
+    if (r.bottom > lr.top) return { key: keyOf(item), offset: r.top - lr.top };
+  }
+  return null;
+}
+const JUMP_ORIGIN_LISTS = {
+  kuenstler: { listId: 'artistList', isRowEl: el => !!el.id && el.id.startsWith('item-'), keyOf: el => el.id.slice(5), label: 'Künstler' },
+  programm: { listId: 'progList', isRowEl: el => !!el.classList && el.classList.contains('prog-item'), keyOf: el => el.dataset.skey, label: 'Programm' },
+};
+// Muss VOR dem switchTab() des Sprungs aufgerufen werden (liest den noch
+// sichtbaren Ausgangs-Tab). null = kein Chip (z. B. Sprung innerhalb desselben
+// Tabs oder Start in einem anderen Tab).
+function captureJumpOrigin(targetTab, subject) {
+  const from = currentTab;
+  const cfg = JUMP_ORIGIN_LISTS[from];
+  if (!cfg || from === targetTab) return null;
+  const origin = { tab: from, label: cfg.label, subject: subject || '', anchor: captureScrollAnchor(cfg.listId, cfg.isRowEl, cfg.keyOf), openKey: null };
+  if (from === 'programm' && openProgRid) {
+    const row = [...document.querySelectorAll('#progList .prog-item')].find(el => (el.getAttribute('onclick') || '').includes(`'${openProgRid}'`));
+    if (row) origin.openKey = row.dataset.skey;
+  }
+  return origin;
+}
+function showJumpBackChip(origin) {
+  jumpOrigin = origin || null;
+  const chip = document.getElementById('jumpBackChip');
+  if (!jumpOrigin) { hideJumpBackChip(); return; }
+  document.getElementById('jumpBackLabel').textContent = `← ${jumpOrigin.label}${jumpOrigin.subject ? ': ' + jumpOrigin.subject : ''}`;
+  chip.style.display = 'flex';
+  document.body.classList.add('has-jump-back');
+}
+function hideJumpBackChip() {
+  stopJumpScrollWatch();
+  jumpOrigin = null;
+  const chip = document.getElementById('jumpBackChip');
+  if (chip) chip.style.display = 'none';
+  document.body.classList.remove('has-jump-back');
+}
+function dismissJumpBack() { hideJumpBackChip(); }
+// Scroll-Überwachung: Verlässt man die Sprungposition (die Ziel-Zeile wandert
+// mehr als JUMP_CHIP_LEAVE_PX von ihrem Landeplatz weg), blendet sich der Chip
+// aus - man ist dann ohnehin woanders unterwegs. Kein Timer: die Landeposition
+// wird direkt nach dem Sprung gemessen, der programmatische Scroll selbst
+// verändert sie danach nicht mehr und löst deshalb nichts aus.
+const JUMP_CHIP_LEAVE_PX = 80;
+let jumpScrollWatch = null;
+function startJumpScrollWatch(listId, findRow) {
+  stopJumpScrollWatch();
+  const list = document.getElementById(listId);
+  const row = findRow();
+  if (!list || !row || !jumpOrigin) return;
+  const topOf = el => el.getBoundingClientRect().top - list.getBoundingClientRect().top;
+  const baseline = topOf(row);
+  const handler = () => {
+    const el = findRow();
+    // Zeile nicht mehr da (Liste wurde neu aufgebaut) oder weit weggescrollt
+    if (!el || Math.abs(topOf(el) - baseline) > JUMP_CHIP_LEAVE_PX) hideJumpBackChip();
+  };
+  list.addEventListener('scroll', handler, { passive: true });
+  jumpScrollWatch = { list, handler };
+}
+function stopJumpScrollWatch() {
+  if (jumpScrollWatch) jumpScrollWatch.list.removeEventListener('scroll', jumpScrollWatch.handler);
+  jumpScrollWatch = null;
+}
+function jumpBack() {
+  const o = jumpOrigin;
+  hideJumpBackChip();
+  if (!o) return;
+  switchTab(o.tab); // Programm rendert dabei neu, Künstler-Liste bleibt bestehen
+  const cfg = JUMP_ORIGIN_LISTS[o.tab];
+  const findRow = key => [...document.getElementById(cfg.listId).children].find(el => cfg.isRowEl(el) && cfg.keyOf(el) === key);
+  // Erst die zuvor aufgeklappte Programm-Zeile wieder öffnen (verändert die
+  // Höhe), danach auf die gemerkte Scrollstelle springen.
+  if (o.tab === 'programm' && o.openKey) {
+    const row = findRow(o.openKey);
+    const rid = row && (row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/) || [])[1];
+    const detail = rid && document.getElementById(`${rid}-detail`);
+    if (detail && detail.classList.contains('collapsed')) toggleProgRating(rid);
+  }
+  const restore = () => {
+    if (!o.anchor) return;
+    const row = findRow(o.anchor.key);
+    if (row) scrollListToEl(cfg.listId, row, o.anchor.offset);
+  };
+  restore();
+  if (window.requestAnimationFrame) requestAnimationFrame(restore);
+}
+
 // Künstler-Übersicht -> Programm-Übersicht: zeigt genau diesen Auftritt an.
 // Filter werden nur so weit angepasst, wie nötig, damit der Auftritt sichtbar
 // ist: erst Tag aktivieren, dann Uhrzeit-Filter lösen, zuletzt die übrigen
@@ -2993,7 +3107,9 @@ function jumpToProgShow(skey) {
     toast('Dieser Auftritt ist ausgeblendet - in der Programm-Übersicht „Ausgeblendete anzeigen“ aktivieren', false);
     return;
   }
+  const origin = captureJumpOrigin('programm', a.name);
   switchTab('programm');
+  showJumpBackChip(origin);
   const visible = () => getFilteredAuftritte().some(x => showKey(x) === skey);
   if (!visible()) {
     const dayBtn = [...document.querySelectorAll('.day-btn')].find(b => b.dataset.day === a.day);
@@ -3017,6 +3133,7 @@ function jumpToProgShow(skey) {
   const header = document.querySelector('#progList .prog-day-header');
   scrollListToEl('progList', row, header ? header.offsetHeight : 0);
   flashEl(row);
+  startJumpScrollWatch('progList', () => [...document.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey));
 }
 // Programm-Übersicht -> Künstler-Übersicht: klappt den Künstler auf und
 // scrollt hin. Künstler-Filter werden nur zurückgesetzt, wenn sie ihn
@@ -3025,7 +3142,17 @@ function jumpToProgShow(skey) {
 function jumpToArtist(name) {
   const d = dataMap[name];
   if (!d) { toast('Künstler nicht in der Liste gefunden', false); return; }
+  // Betreff des Chips: die Programm-Zeile, von der aus gesprungen wird (bei
+  // Event-Act-Chips also das Event), sonst der Künstlername.
+  let subject = name;
+  if (currentTab === 'programm' && openProgRid) {
+    const openRow = [...document.querySelectorAll('#progList .prog-item')].find(el => (el.getAttribute('onclick') || '').includes(`'${openProgRid}'`));
+    const entry = openRow && allProgEntries().find(x => showKey(x) === openRow.dataset.skey);
+    if (entry) subject = entry.name;
+  }
+  const origin = captureJumpOrigin('kuenstler', subject);
   switchTab('kuenstler');
+  showJumpBackChip(origin);
   if (!getFiltered().some(x => x.name === name)) {
     resetKuenstlerFilters();
     if (d.ausgeblendet) statsAusgeblendetFilter = true;
@@ -3036,6 +3163,7 @@ function jumpToArtist(name) {
   if (!item) { toast('Künstler in der Übersicht nicht gefunden', false); return; }
   scrollListToEl('artistList', item, 0);
   flashEl(item.querySelector('.artist-row'));
+  startJumpScrollWatch('artistList', () => document.getElementById(`item-${name}`));
 }
 
 // Springt auf den heutigen Festivaltag (falls es einer ist) und die aktuelle
