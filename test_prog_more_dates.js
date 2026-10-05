@@ -11,7 +11,9 @@ const { loadApp, createChecker } = require('./test-helpers');
   const row = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
   const ridOf = skey => row(skey).getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
   const marker = skey => row(skey).querySelector('.prog-right-col .prog-more-ind');
-  const terms = skey => d.getElementById(`${ridOf(skey)}-terms`);
+  // Die Detailansicht (und damit die Terminliste) wird erst beim Aufklappen gebaut:
+  // terms() klappt die Zeile deshalb bei Bedarf auf (es ist immer nur eine offen).
+  const terms = skey => { if (!detailOpen(skey)) w.toggleProgRating(ridOf(skey)); return d.getElementById(`${ridOf(skey)}-terms`); };
   const termRows = skey => [...terms(skey).querySelectorAll('.prog-term')];
   const detailOpen = skey => !d.getElementById(`${ridOf(skey)}-detail`).classList.contains('collapsed');
   const chip = () => d.getElementById('jumpBackChip');
@@ -47,7 +49,10 @@ const { loadApp, createChecker } = require('./test-helpers');
   ev("appSettings.showRbfEvents = true; appSettings.showMusicEvents = true; appSettings.showOtherEvents = true;");
   w.renderProg();
   const evEl = [...d.querySelectorAll('#progList .prog-item')].find(el => el.textContent.includes('Anchor Award Show'));
-  t.check('Sonderveranstaltung hat keinen Hinweis und keine Terminliste.', !evEl.querySelector('.prog-more-ind') && !d.getElementById(`${evEl.getAttribute('onclick').match(/'([^']+)'/)[1]}-terms`));
+  const evRid = evEl.getAttribute('onclick').match(/'([^']+)'/)[1];
+  w.toggleProgRating(evRid);
+  t.check('Sonderveranstaltung hat keinen Hinweis und keine Terminliste.', !evEl.querySelector('.prog-more-ind') && !d.getElementById(`${evRid}-terms`));
+  w.toggleProgRating(evRid);
 
   // ───────── 2) Terminliste in der Detailansicht ─────────
   t.check('Terminliste nur bei mehreren Terminen: bei Nova Frequenz keine.', !terms('nid:1'));

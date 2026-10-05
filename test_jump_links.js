@@ -144,6 +144,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   w.renderProg();
   const evRow = [...d.querySelectorAll('#progList .prog-item')].find(el => el.textContent.includes('Anchor Award Show'));
   t.check('Testevent "Anchor Award Show" ist im Programm.', !!evRow);
+  w.toggleProgRating(ridOf(evRow));            // Detailansicht wird erst beim Aufklappen gebaut
   const detail = d.getElementById(`${ridOf(evRow)}-detail`);
   const chips = [...detail.querySelectorAll('.badge')];
   const linked = chips.filter(c => c.classList.contains('badge-link'));

@@ -13,6 +13,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   // TBA-Auftritt (nid 5) hat keine Zeiten -> kein Dauer-Vorschlag, saubere Ausgangslage.
   const progItem = d.querySelector('[data-skey="nid:5"]');
   const rid = progItem.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+  w.toggleProgRating(rid);                    // Detailansicht wird erst beim Aufklappen gebaut
   const skey = 'nid:5';
   const hasRow = () => !!d.querySelector('[data-skey="nid:5"]');
   const btn = () => d.getElementById(`${rid}-durbtn`);

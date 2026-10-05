@@ -160,6 +160,8 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .jump-back-main { background: none; border: 0; color: var(--accent); font-size: 13px; font-weight: 600; padding: 8px 8px 8px 14px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .jump-back-x { background: none; border: 0; border-left: 1px solid var(--border); color: var(--text3); font-size: 12px; padding: 8px 12px; cursor: pointer; }
 body.has-jump-back .toast { bottom: calc(var(--safe-bottom) + 114px); }
+.jump-shield { position: fixed; inset: 0; z-index: 2000; background: transparent; }
+body.jump-busy::after { content: 'Springe …'; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 80px); z-index: 2100; background: var(--surface); border: 1px solid var(--accent); color: var(--accent); border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.4); pointer-events: none; }
 .jump-flash { animation: jumpFlash 1.8s ease-out; }
 @keyframes jumpFlash { 0%, 35% { background: rgba(232,164,0,.28); } 100% { background: transparent; } }
 .no-shows { font-size: 12px; color: var(--text3); font-style: italic; }
@@ -799,7 +801,8 @@ input[type=file] { display: none; }
   </div>
 </div>
 
-<div class="jump-back-chip" id="jumpBackChip" style="display:none"><button type="button" class="jump-back-main" id="jumpBackLabel" onclick="jumpBack()"></button><button type="button" class="jump-back-x" aria-label="Zurück-Hinweis schließen" onclick="dismissJumpBack()">✕</button></div>
+<div id="jumpShield" class="jump-shield" style="display:none" onclick="event.stopPropagation()"></div>
+<div class="jump-back-chip" id="jumpBackChip" style="display:none"><button type="button" class="jump-back-main" id="jumpBackLabel" onclick="runJump(jumpBack)"></button><button type="button" class="jump-back-x" aria-label="Zurück-Hinweis schließen" onclick="dismissJumpBack()">✕</button></div>
 
 <div class="toast" id="toast"></div>
 
@@ -937,7 +940,12 @@ let currentTab = 'kuenstler';
 let sortCol = 'name', sortDir = 1;
 
 // ── LOCALSTORAGE ─────────────────────────────────────────────────────────────
+// Zähler für "Daten haben sich geändert": wird bei JEDEM Speichern erhöht und
+// dient (zusammen mit Filtern/Einstellungen) der Erkennung, ob die Programm-
+// Liste beim Tabwechsel neu aufgebaut werden muss (siehe progListStale()).
+let stateVersion = 0;
 function saveToStorage() {
+  stateVersion++;
   try {
     const payload = Object.values(dataMap)
       .filter(d => d.rp > 0 || d.rl > 0 || d.gesehen || d.customUrl || d.manual || d.ausgeblendet || d.kommentar || d.reinhoeren)
@@ -1515,6 +1523,11 @@ function switchTab(tab) {
   // Jeder Tabwechsel beendet den Zurück-Chip (siehe jumpBack()); die Sprung-
   // Funktionen setzen ihn erst NACH ihrem switchTab() neu.
   hideJumpBackChip();
+  // Scrollstelle der Programm-Liste vor dem Verstecken merken (siehe unten).
+  if (currentTab === 'programm' && tab !== 'programm') {
+    const pl = document.getElementById('progList');
+    if (pl) progScrollMemo = pl.scrollTop;
+  }
   currentTab = tab;
   ['kuenstler','programm','auswertung','io'].forEach(t => {
     const el = document.getElementById(`view-${t}`);
@@ -1529,7 +1542,8 @@ function switchTab(tab) {
   });
   if (tab === 'programm') {
     if (!smartProgDefaultsApplied) { applySmartProgDefaults(); smartProgDefaultsApplied = true; }
-    renderProg();
+    if (progListStale()) renderProg();
+    else { const pl = document.getElementById('progList'); if (pl && progScrollMemo) pl.scrollTop = progScrollMemo; }
   }
   if (tab === 'auswertung') renderAuswertung();
 }
@@ -2307,6 +2321,10 @@ function toggleProgRating(rid) {
   }
 
   const nowCollapsed = detail.classList.toggle('collapsed');
+  if (!nowCollapsed) {
+    const entry = progEntryByRid[rid];
+    if (entry) detail.innerHTML = progDetailHTML(entry, rid);   // lazy: frisch aus dem aktuellen Zustand
+  }
   if (arrow) arrow.textContent = nowCollapsed ? '▸' : '▾';
   openProgRid = nowCollapsed ? null : rid;
   updateShowMetaRowVisibility(rid);
@@ -2544,7 +2562,7 @@ function renderArtistItem(name) {
           const skey = showKey(s);
           const srid = `art-${nj}-${idx}`;
           const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${mapsUrl(s.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(s.location)}')">${s.location}</a>` : s.location) : '<span style="opacity:.6">TBA</span>';
-          return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();jumpToProgShow('${escJs(skey)}')">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
+          return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
         }).join('');
     } else {
       showsHtml = '<div class="no-shows">Noch keine Auftrittsdaten</div>';
@@ -3057,10 +3075,28 @@ function flashEl(el) {
 // Alle Termine eines Künstlers, chronologisch (Tag, Uhrzeit; TBA ans Ende des
 // Tages, bei Gleichstand Datenreihenfolge). Bewusst ungefiltert: auch Termine,
 // die durch Tag-/Zeit-/Location-Filter gerade nicht in der Liste stehen.
+// Die Gruppierung wird gecacht (pro auftritte-Array): beim Aufbau der Liste wird
+// die Funktion pro Zeile mehrfach gebraucht - ohne Cache hieß das hunderte
+// Filter-/Sortier-Durchläufe über alle Auftritte. Gecacht wird nur, solange
+// dasselbe Array (gleiche Identität + Länge) aktiv ist; Laden/Zurücksetzen der
+// Daten ersetzt das Array und erneuert den Cache damit automatisch. Das
+// zurückgegebene Array darf nicht verändert werden.
+let _showsByName = null, _showsByNameSrc = null, _showsByNameLen = -1;
 function artistShowsSorted(name) {
-  return auftritte.map((x, i) => ({ x, i })).filter(o => o.x.name === name)
-    .sort((p, q) => dayIndex(p.x.day) - dayIndex(q.x.day) || timeSortValue(p.x.time) - timeSortValue(q.x.time) || p.i - q.i)
-    .map(o => o.x);
+  if (_showsByNameSrc !== auftritte || _showsByNameLen !== auftritte.length) {
+    const groups = new Map();
+    auftritte.forEach((x, i) => {
+      if (!groups.has(x.name)) groups.set(x.name, []);
+      groups.get(x.name).push({ x, i });
+    });
+    _showsByName = new Map();
+    groups.forEach((g, n) => {
+      g.sort((p, q) => dayIndex(p.x.day) - dayIndex(q.x.day) || timeSortValue(p.x.time) - timeSortValue(q.x.time) || p.i - q.i);
+      _showsByName.set(n, g.map(o => o.x));
+    });
+    _showsByNameSrc = auftritte; _showsByNameLen = auftritte.length;
+  }
+  return _showsByName.get(name) || [];
 }
 // true, wenn der Künstler NACH diesem Termin noch mindestens einen weiteren hat
 // (beim letzten/einzigen Termin und bei Sonderveranstaltungen: false).
@@ -3097,7 +3133,7 @@ function termineInnerHTML(a) {
     const icons = (planFlags[k] ? '<span title="Ziel">🎯</span>' : '')
       + (dur > 0 ? `<span>⏱ ${formatDuration(dur)}</span>` : '')
       + (rat > 0 ? miniStarsShow(rat) : '');
-    return `<div class="prog-term${isShowPast(x) ? ' past' : ''}" role="button" onclick="event.stopPropagation();jumpToProgShow('${escJs(k)}', true)"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">${x.location || 'TBA'}</span><span class="t-icons">${icons}</span></div>`;
+    return `<div class="prog-term${isShowPast(x) ? ' past' : ''}" role="button" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(k)}', true))"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">${x.location || 'TBA'}</span><span class="t-icons">${icons}</span></div>`;
   }).join('');
   return `<div class="prog-terms-title">Termine</div>${rows}`;
 }
@@ -3114,6 +3150,35 @@ function refreshTermineLists(skey) {
     const el = document.getElementById(`${r}-terms`), a = progEntryByRid[r];
     if (el && a) el.innerHTML = termineInnerHTML(a);
   });
+}
+
+// ── SPRÜNGE AUS DER OBERFLÄCHE: Rückmeldung + Tap-Schutz ─────────────────────
+// Ein Sprung kann spürbar dauern (Liste neu aufbauen). Damit man nicht denkt, der
+// Tipp sei nicht angekommen, und ein zweiter Tipp nicht auf der NEUEN Ansicht
+// landet (z. B. auf dem Location-Link der Ziel-Zeile), gilt für Sprünge, die per
+// Tipp ausgelöst werden:
+//  - sofort sichtbare Rückmeldung ("Springe …"): die eigentliche Arbeit startet
+//    erst nach kurzer Pause, damit der Browser die Rückmeldung noch zeichnet;
+//  - ein unsichtbares Schild über der ganzen App fängt alle weiteren Tipps ab,
+//    bis der Sprung fertig ist UND noch kurz danach (bereits eingereihte Tipps
+//    werden erst nach dem Sprung ausgeliefert und träfen sonst die neue Ansicht);
+//  - weitere Sprünge werden währenddessen ignoriert.
+const JUMP_START_DELAY_MS = 40;
+const JUMP_SHIELD_HOLD_MS = 450;
+let jumpBusy = false;
+function runJump(fn) {
+  if (jumpBusy) return;
+  if (window.__rbfSyncJumps) { fn(); return; }   // Tests: synchron ausführen
+  jumpBusy = true;
+  const shield = document.getElementById('jumpShield');
+  shield.style.display = 'block';
+  document.body.classList.add('jump-busy');
+  setTimeout(() => {
+    try { fn(); } catch (e) { safeLog('Sprung fehlgeschlagen:', e); }
+    document.body.classList.remove('jump-busy');
+    jumpBusy = false;
+    setTimeout(() => { if (!jumpBusy) shield.style.display = 'none'; }, JUMP_SHIELD_HOLD_MS);
+  }, JUMP_START_DELAY_MS);
 }
 
 // ── ZURÜCK-CHIP ────────────────────────────────────────────────────────────
@@ -3275,12 +3340,15 @@ function jumpToProgShow(skey, keepOrigin) {
     return;
   }
   const origin = captureJumpOrigin('programm', a.name, keepOrigin === true);
-  switchTab('programm');
-  showJumpBackChip(origin);
+  // Filter werden VOR dem Tabwechsel angepasst (sie sind reine DOM-Werte und
+  // wirken auch bei verstecktem Tab): so baut der Tabwechsel die Liste genau
+  // EINMAL mit dem Endergebnis auf, statt erst mit den alten und dann noch
+  // einmal mit den neuen Filtern (der Listenaufbau ist der teuerste Schritt).
   const visible = () => getFilteredAuftritte().some(x => showKey(x) === skey);
+  let filtersChanged = false;
   if (!visible()) {
     const dayBtn = [...document.querySelectorAll('.day-btn')].find(b => b.dataset.day === a.day);
-    if (dayBtn) dayBtn.classList.add('active');
+    if (dayBtn) { dayBtn.classList.add('active'); filtersChanged = true; }
   }
   if (!visible()) {
     // "Kein Zeitfilter": von = erster Eintrag der Liste (08:00), bis = leer
@@ -3289,9 +3357,12 @@ function jumpToProgShow(skey, keepOrigin) {
     if (fromSel.options.length) fromSel.selectedIndex = 0;
     if ([...toSel.options].some(o => o.value === '')) toSel.value = '';
     else if (toSel.options.length) toSel.selectedIndex = toSel.options.length - 1;
+    filtersChanged = true;
   }
-  if (!visible()) clearProgFilterState();
-  renderProg();
+  if (!visible()) { clearProgFilterState(); filtersChanged = true; }
+  if (currentTab !== 'programm') switchTab('programm');   // baut die Liste auf
+  else { hideJumpBackChip(); if (filtersChanged) renderProg(); }   // schon im Programm: nur bei geänderten Filtern neu aufbauen
+  showJumpBackChip(origin);
   const row = [...document.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
   if (!row) { toast('Auftritt in der Programm-Übersicht nicht gefunden', false); return; }
   const rid = (row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/) || [])[1];
@@ -3321,12 +3392,17 @@ function jumpToArtist(name) {
   const origin = captureJumpOrigin('kuenstler', subject);
   switchTab('kuenstler');
   showJumpBackChip(origin);
-  if (!getFiltered().some(x => x.name === name)) {
+  const visibleNow = getFiltered().some(x => x.name === name);
+  if (!visibleNow) {
     resetKuenstlerFilters();
     if (d.ausgeblendet) statsAusgeblendetFilter = true;
   }
   expandedRows.add(name);
-  render();
+  // Ist der Künstler ohnehin sichtbar, reicht es, NUR seine Zeile neu zu
+  // zeichnen (aufgeklappt); die komplette Künstler-Liste (hunderte Zeilen)
+  // muss nur neu aufgebaut werden, wenn dafür Filter zurückgesetzt wurden.
+  if (visibleNow && document.getElementById(`item-${name}`)) renderArtistItem(name);
+  else render();
   const item = document.getElementById(`item-${name}`);
   if (!item) { toast('Künstler in der Übersicht nicht gefunden', false); return; }
   scrollListToEl('artistList', item, 0);
@@ -3647,7 +3723,65 @@ function handleInstallBackdropClick(e) {
 // seine sichtbaren Zeilen aktualisiert werden, nicht nur die angeklickte.
 let progRidsByName = {};
 
+// Detailansicht einer Programm-Zeile. Wird NICHT mehr für alle Zeilen vorab
+// gebaut (das waren ~70 % des gesamten Listen-HTMLs und der Hauptgrund für die
+// Wartezeit beim Wechsel/Sprung ins Programm), sondern erst beim Aufklappen
+// (siehe toggleProgRating) - und dabei jedes Mal frisch aus dem aktuellen
+// Zustand, nie veraltet. Es ist immer nur eine Detailansicht gleichzeitig offen.
+function progDetailHTML(a, rid) {
+  const d = dataMap[a.name];
+  const skey = showKey(a);
+  const nj = escJs(a.name);
+  const skeyEsc = escJs(skey);
+  return `
+      ${d ? `<div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
+        <div class="prog-detail-pair"><span class="prog-detail-label">Promo</span><div class="stars stars-sm" id="${rid}-rp">${progStarsHTML(rid,a.name,'rp')}</div></div>
+        ${appSettings.showListening ? `<div class="prog-detail-pair"><span class="prog-detail-label">Listening</span><div class="stars stars-sm" id="${rid}-rl">${progStarsHTML(rid,a.name,'rl')}</div></div>` : ''}
+      </div>
+      <div class="prog-detail-row" onclick="event.stopPropagation()"><span class="prog-detail-label">Gesehen</span>${seenButtonsHTML(a.name, d, rid)}</div>
+      <div style="display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;margin-top:6px">
+        <a class="prog-detail-link" style="margin-top:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">↗ RBF-Seite öffnen</a>
+        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();runJump(()=>jumpToArtist('${nj}'))">👤 Zum Künstler</button>
+        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleHidden('${nj}')">${d.ausgeblendet ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
+      </div>` : (a.isEvent ? `<div class="prog-detail-row">
+        <div class="detail-label">${a.kategorie === 'Musik' ? '🎵' : '🎪'} Sonderveranstaltung · ${a.kategorie}</div>
+        ${a.acts && a.acts.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${a.acts.map(n => {
+          const dd = dataMap[n];
+          return dd ? `<span class="badge badge-link ${genderBadgeClass(dd.geschlecht)}" style="font-size:10px" role="button" title="Zum Künstler" onclick="event.stopPropagation();runJump(()=>jumpToArtist('${escJs(n)}'))">${n}</span>` : `<span class="badge" style="font-size:10px;background:var(--surface2);color:var(--text2)">${n}</span>`;
+        }).join('')}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
+        ${a.url ? `<a class="prog-detail-link" style="margin-top:0" href="${a.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(a.url)}')">↗ Veranstaltung öffnen</a>` : ''}
+        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleEventHidden('${escJs(a.nid)}')">${hiddenEvents[a.nid] ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
+      </div>` : `<div class="prog-detail-row">Künstler nicht in der Liste gefunden.</div>`)}
+      <div class="prog-detail-divider"></div>
+      <div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
+        <div class="prog-detail-pair"><span class="prog-detail-label">Auftritt</span><div class="stars stars-sm" id="${rid}-show">${progShowStarsHTML(rid,skey)}</div></div>
+        <div class="prog-detail-pair"><span class="prog-detail-label">Dauer</span>${durationButtonHTML(rid, skeyEsc, nj, skey, suggestedDurationMin(a))}</div>
+      </div>
+      ${termineSectionHTML(a, rid)}
+    `;
+}
+
+// Merkt sich nach jedem Listenaufbau, für welchen Stand er gemacht wurde. Beim
+// Wechsel in den Programm-Tab (und bei Sprüngen) wird die Liste nur dann neu
+// aufgebaut, wenn sich seitdem Daten, Einstellungen oder Programm-Filter
+// geändert haben - der Listenaufbau ist der teuerste Schritt und war bisher bei
+// JEDEM Tabwechsel fällig. Alles, was die Zeilen beeinflusst, läuft über
+// saveToStorage() (stateVersion), appSettings oder die Filter-Werte.
+let lastProgRenderSig = null;
+let progScrollMemo = 0;
+function progRenderSignature() {
+  return [stateVersion, auftritte.length, Object.keys(dataMap).length,
+    JSON.stringify(appSettings), JSON.stringify(snapshotProgFilters()),
+    document.getElementById('progShowHidden').checked].join('|');
+}
+function progListStale() { return lastProgRenderSig !== progRenderSignature(); }
 function renderProgCore() {
+  renderProgCoreImpl();
+  lastProgRenderSig = progRenderSignature();
+}
+function renderProgCoreImpl() {
   const list = document.getElementById('progList');
   openProgRid = null;
   progRidsByName = {};
@@ -3710,34 +3844,7 @@ function renderProgCore() {
         ${hasLaterShow(a) ? '<div class="prog-more-ind" title="Weitere Termine danach" aria-label="Weitere Termine danach">📅</div>' : ''}
       </div>
     </div>
-    <div class="prog-detail collapsed" id="${rid}-detail">
-      ${d ? `<div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
-        <div class="prog-detail-pair"><span class="prog-detail-label">Promo</span><div class="stars stars-sm" id="${rid}-rp">${progStarsHTML(rid,a.name,'rp')}</div></div>
-        ${appSettings.showListening ? `<div class="prog-detail-pair"><span class="prog-detail-label">Listening</span><div class="stars stars-sm" id="${rid}-rl">${progStarsHTML(rid,a.name,'rl')}</div></div>` : ''}
-      </div>
-      <div class="prog-detail-row" onclick="event.stopPropagation()"><span class="prog-detail-label">Gesehen</span>${seenButtonsHTML(a.name, d, rid)}</div>
-      <div style="display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;margin-top:6px">
-        <a class="prog-detail-link" style="margin-top:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">↗ RBF-Seite öffnen</a>
-        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();jumpToArtist('${nj}')">👤 Zum Künstler</button>
-        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleHidden('${nj}')">${d.ausgeblendet ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
-      </div>` : (a.isEvent ? `<div class="prog-detail-row">
-        <div class="detail-label">${a.kategorie === 'Musik' ? '🎵' : '🎪'} Sonderveranstaltung · ${a.kategorie}</div>
-        ${a.acts && a.acts.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${a.acts.map(n => {
-          const dd = dataMap[n];
-          return dd ? `<span class="badge badge-link ${genderBadgeClass(dd.geschlecht)}" style="font-size:10px" role="button" title="Zum Künstler" onclick="event.stopPropagation();jumpToArtist('${escJs(n)}')">${n}</span>` : `<span class="badge" style="font-size:10px;background:var(--surface2);color:var(--text2)">${n}</span>`;
-        }).join('')}</div>` : ''}
-      </div>
-      <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
-        ${a.url ? `<a class="prog-detail-link" style="margin-top:0" href="${a.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(a.url)}')">↗ Veranstaltung öffnen</a>` : ''}
-        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleEventHidden('${escJs(a.nid)}')">${hiddenEvents[a.nid] ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
-      </div>` : `<div class="prog-detail-row">Künstler nicht in der Liste gefunden.</div>`)}
-      <div class="prog-detail-divider"></div>
-      <div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
-        <div class="prog-detail-pair"><span class="prog-detail-label">Auftritt</span><div class="stars stars-sm" id="${rid}-show">${progShowStarsHTML(rid,skey)}</div></div>
-        <div class="prog-detail-pair"><span class="prog-detail-label">Dauer</span>${durationButtonHTML(rid, skeyEsc, nj, skey, suggestedDurationMin(a))}</div>
-      </div>
-      ${termineSectionHTML(a, rid)}
-    </div>`;
+    <div class="prog-detail collapsed" id="${rid}-detail"></div>`;
   });
   list.innerHTML = html;
   saveFilterState();

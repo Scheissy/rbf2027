@@ -12,6 +12,7 @@ const { loadApp, createChecker } = require('./test-helpers');
 
   const item = d.querySelector('[data-skey="nid:1"]');          // Nova Frequenz 20:00-20:45
   const rid = item.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+  w.toggleProgRating(rid);                    // Detailansicht wird erst beim Aufklappen gebaut
   const skey = 'nid:1';
   const btn = () => d.getElementById(`${rid}-durbtn`);
   const modal = () => d.getElementById('durationModal');
@@ -41,7 +42,12 @@ const { loadApp, createChecker } = require('./test-helpers');
   t.check('Kurzanzeige in der Programm-Zeile bleibt leer (Vorschlag ist keine Dauer).', summary().style.display === 'none' && summary().textContent === '');
   t.check('Gesamtzeit-Leiste bleibt leer (Vorschlag zählt nicht).', d.getElementById('progTotalTime').style.display === 'none');
   if (visited() !== undefined) t.check('Auftritt gilt mit bloßem Vorschlag NICHT als besucht.', visited() === false);
-  t.check('Act ohne Zeiten (TBA, nid 5) zeigt weiterhin "+ Eintragen".', d.getElementById(d.querySelector('[data-skey="nid:5"]').getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1] + '-durbtn').textContent === '+ Eintragen');
+  {
+    const tbaRid = d.querySelector('[data-skey="nid:5"]').getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+    w.toggleProgRating(tbaRid);                  // schließt die Nova-Zeile, öffnet die TBA-Zeile
+    t.check('Act ohne Zeiten (TBA, nid 5) zeigt weiterhin "+ Eintragen".', d.getElementById(`${tbaRid}-durbtn`).textContent === '+ Eintragen');
+    w.toggleProgRating(rid);                     // wieder die Nova-Zeile öffnen
+  }
 
   // 3) Modal: Vorschlag vorbelegt (gedimmt), Hauptbutton = Speichern
   btn().click();
