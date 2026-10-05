@@ -11,7 +11,7 @@ const DAY_ORDER = ['Mi 15.09', 'Do 16.09', 'Fr 17.09', 'Sa 18.09'];
 
 // [Name, Genre, Herkunft, Geschlecht, RBF-Link]
 const RAW = [
-  ['Nova Frequenz',          'Electro / Pop',    'Berlin, DE',  'weiblich',      'https://example.org/artist/nova-frequenz'],
+  ['Nova Frequenz',          'Electro / Pop',    'Berlin, DE',  'weiblich',      'https://example.org/artist/nova-frequenz', 'https://www.discogs.com/artist/123-Nova-Frequenz'],
   ['Stahl & Beton',          'Techno',            'Hamburg, DE', 'männlich',      'https://example.org/artist/stahl-beton'],
   ['Kollektiv Nachtfalter',  'Indie / Alternative','Leipzig, DE','mixed',  'https://example.org/artist/kollektiv-nachtfalter'],
   ['Rosa Mercur',            'Pop',               'Wien, AT',    'divers', 'https://example.org/artist/rosa-mercur'],

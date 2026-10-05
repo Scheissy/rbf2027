@@ -153,6 +153,7 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .show-loc { color: var(--accent); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .show-loc a, .prog-loc a { color: inherit; text-decoration: underline; text-decoration-color: rgba(232,164,0,.4); text-underline-offset: 2px; }
 .show-row .stars { flex-shrink: 0; }
+.detail-links { display: flex; align-items: center; gap: 12px; flex-shrink: 0; white-space: nowrap; }
 .show-jump { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(232,164,0,.4); text-underline-offset: 2px; }
 .show-jump:active { color: var(--accent); }
 .badge-link { cursor: pointer; }
@@ -831,9 +832,18 @@ function escJs(str) {
 
 const MAX = 5;
 const MAX_COMMENT_LEN = 250;
+// Nur echte Web-Links (http/https) werden als externer Link übernommen - alles
+// andere (leer, javascript:, Müll) wird verworfen.
+function cleanExternalUrl(u) {
+  const v = typeof u === 'string' ? u.trim() : '';
+  // Anführungszeichen, Backslash und spitze Klammern gehören (unkodiert) nicht in
+  // eine URL und würden das generierte HTML/JS stören -> verwerfen.
+  return /^https?:\/\/[^\s"'<>\\]+$/i.test(v) ? v : '';
+}
 let dataMap = {};
 RAW.forEach(r => {
-  dataMap[r[0]] = { name:r[0], genre:r[1], herkunft:r[2], geschlecht:r[3], rbfUrl:r[4], rp:0, rl:0, gesehen:'', customUrl:'', manual:false, ausgeblendet:false, kommentar:'', reinhoeren:false };
+  // RAW-Zeile: [Name, Genre, Herkunft, Geschlecht, RBF-URL, (optional) Discogs-URL]
+  dataMap[r[0]] = { name:r[0], genre:r[1], herkunft:r[2], geschlecht:r[3], rbfUrl:r[4], discogsUrl:cleanExternalUrl(r[5]), rp:0, rl:0, gesehen:'', customUrl:'', manual:false, ausgeblendet:false, kommentar:'', reinhoeren:false };
 });
 // Von der offiziellen RBF-API übernommene (Teil-)Programmdaten: [Künstler, Tag, Zeit, Ende, Location]
 // Zeit/Location sind leer ('') = vom Festival noch nicht final bestätigt (TBA).
@@ -2570,7 +2580,10 @@ function renderArtistItem(name) {
     html += `<div class="artist-detail" id="detail-${name}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
         <div class="detail-genre">${d.genre}</div>
-        <a class="detail-link" style="margin-top:0;flex-shrink:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">↗ RBF-Seite öffnen</a>
+        <div class="detail-links">
+          <a class="detail-link" style="margin-top:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">${d.discogsUrl ? '↗ RBF' : '↗ RBF-Seite öffnen'}</a>
+          ${d.discogsUrl ? `<a class="detail-link detail-link-discogs" style="margin-top:0" href="${escapeHtml(d.discogsUrl)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${escapeHtml(escJs(d.discogsUrl))}')">↗ Discogs</a>` : ''}
+        </div>
       </div>
       <div class="detail-section detail-ratings-row">
         <div class="detail-rating-col">
