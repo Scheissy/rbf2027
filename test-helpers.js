@@ -83,6 +83,13 @@ async function loadApp(opts = {}) {
 
   await new Promise(resolve => setTimeout(resolve, opts.initDelayMs ?? DEFAULT_INIT_DELAY_MS));
 
+  // Per Tipp ausgelöste Sprünge (runJump in index.html) laufen in der echten App
+  // leicht verzögert und mit Tap-Schutz-Schild. Die Tests prüfen das Sprung-
+  // VERHALTEN und erwarten ein sofortiges Ergebnis - deshalb standardmäßig
+  // synchron. Das verzögerte Verhalten testet test_jump_tap_shield.js gezielt
+  // (dort: window.__rbfSyncJumps = false).
+  dom.window.__rbfSyncJumps = true;
+
   return { dom, window: dom.window, document: dom.window.document, errors };
 }
 

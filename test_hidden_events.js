@@ -8,14 +8,25 @@ const { loadApp, createChecker } = require('./test-helpers');
   w.renderProg();
 
   // ── Regressionscheck: Event-URL-Verlinkung (aus vorheriger Änderung) ──────
+  // Die Detailansicht wird seit der Performance-Optimierung erst beim Aufklappen
+  // gebaut - geprüft wird deshalb der Inhalt der aufgeklappten Detailansicht
+  // der jeweiligen Zeile (nicht mehr das HTML der gesamten Liste).
   {
-    const listHtml = d.getElementById('progList').innerHTML;
+    const detailOf = name => {
+      const row = [...d.querySelectorAll('#progList .prog-item')].find(el => el.querySelector('.prog-name').textContent.includes(name));
+      const rid = row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+      w.toggleProgRating(rid);
+      const html = d.getElementById(`${rid}-detail`).innerHTML;
+      w.toggleProgRating(rid);
+      return html;
+    };
+    const anchor = detailOf('Anchor Award Show'), podcast = detailOf('RBF Podcast Live'), nova = detailOf('Nova Frequenz');
     t.check('Event MIT url ("Anchor Award Show") zeigt weiterhin den Veranstaltungs-Link.',
-      listHtml.includes('href="https://example.org/event/anchor-award-show"') && listHtml.includes('↗ Veranstaltung öffnen'));
+      anchor.includes('href="https://example.org/event/anchor-award-show"') && anchor.includes('↗ Veranstaltung öffnen'));
     t.check('Event OHNE url ("RBF Podcast Live") zeigt weiterhin keinen Veranstaltungs-Link.',
-      !/RBF Podcast Live[\s\S]{0,600}?↗ Veranstaltung öffnen/.test(listHtml));
+      podcast.length > 0 && !podcast.includes('↗ Veranstaltung öffnen'));
     t.check('Regulärer Künstler-Auftritt verlinkt weiterhin zur Künstlerseite.',
-      listHtml.includes('href="https://example.org/artist/nova-frequenz"') && listHtml.includes('↗ RBF-Seite öffnen'));
+      nova.includes('href="https://example.org/artist/nova-frequenz"') && nova.includes('↗ RBF-Seite öffnen'));
   }
 
   // Testdaten enthalten "RBF Podcast Live" (Do 16.09, ohne url). Wir suchen
