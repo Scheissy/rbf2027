@@ -145,5 +145,52 @@ const { loadApp, createChecker } = require('./test-helpers');
   t.check('Termin an ausgeblendeter Location: kein Sprung, kein Chip.', !chipVisible() && detailOpen(rosa[1]));
   ev("appSettings.hiddenLocations = [];");
 
+
+  // ───────── 5) Terminliste ist auf-/zuklappbar (Standard: zu) ─────────
+  showAll();
+  const k0 = rosa[0];
+  const toggleHead = () => terms(k0).querySelector('.prog-terms-head');
+  const isOpen = () => terms(k0).classList.contains('open');
+  const bodyEl = () => d.getElementById(`${ridOf(k0)}-termsbody`);
+  if (detailOpen(k0)) w.toggleProgRating(ridOf(k0));            // frisch aufklappen
+  w.toggleProgRating(ridOf(k0));
+  t.check('Terminliste startet ZUGEKLAPPT (Standard).', !isOpen());
+  t.check('Kopfzeile nennt die Anzahl der Termine: "Termine (n)" mit Pfeil ▸.', toggleHead().textContent.includes(`Termine (${rosa.length})`) && toggleHead().textContent.includes('▸'), toggleHead().textContent);
+  t.check('Zugeklappt blendet das CSS die Einträge aus (display: none), die Kopfzeile bleibt sichtbar.', /\.prog-terms-body\s*\{[^}]*display:\s*none/.test(d.querySelector('style').textContent) && /\.prog-terms\.open \.prog-terms-body\s*\{[^}]*display:\s*block/.test(d.querySelector('style').textContent));
+  t.check('Kopfzeile ist ein Button mit aria-expanded="false".', toggleHead().getAttribute('role') === 'button' && toggleHead().getAttribute('aria-expanded') === 'false');
+  toggleHead().click();
+  t.check('Tipp auf die Kopfzeile klappt die Liste auf (Pfeil ▾, aria-expanded true).', isOpen() && toggleHead().textContent.includes('▾') && toggleHead().getAttribute('aria-expanded') === 'true');
+  t.check('Die Zeile selbst bleibt dabei aufgeklappt (Tipp schließt nicht die ganze Detailansicht).', detailOpen(k0));
+  toggleHead().click();
+  t.check('Zweiter Tipp klappt sie wieder zu.', !isOpen() && detailOpen(k0) && toggleHead().textContent.includes('▸'));
+
+  // Live-Aktualisierung behält den Auf-/Zu-Zustand
+  toggleHead().click();
+  w.togglePlanFlag(ridOf(rosa[1]), rosa[1]);
+  t.check('Live-Aktualisierung (Ziel bei anderem Termin) lässt die geöffnete Liste offen und zeigt das 🎯.', isOpen() && bodyEl().textContent.includes('🎯'));
+  toggleHead().click();
+  w.togglePlanFlag(ridOf(rosa[1]), rosa[1]);
+  t.check('Live-Aktualisierung lässt eine zugeklappte Liste zu.', !isOpen());
+
+  // Eine andere aufgeklappte Zeile startet wieder zugeklappt (nichts "klebt")
+  toggleHead().click();
+  w.toggleProgRating(ridOf(k0)); w.toggleProgRating(ridOf(k0));  // Zeile zu- und wieder aufklappen
+  t.check('Zeile zu- und wieder aufgeklappt: Terminliste ist wieder zu (Standard).', !isOpen());
+
+  // Sprung aus der Terminliste: Ziel-Zeile hat die Liste offen, "Zurück" öffnet sie in der Ausgangszeile wieder
+  toggleHead().click();
+  const target = rosa[1];
+  [...terms(k0).querySelectorAll('.prog-term')].find(r => (r.getAttribute('onclick') || '').includes(target)).click();
+  const tTerms = () => d.getElementById(`${ridOf(target)}-terms`);
+  t.check('Sprung aus der Terminliste: die Liste der Ziel-Zeile ist offen (man hangelt sich weiter).', detailOpen(target) && tTerms().classList.contains('open'));
+  w.jumpBack();
+  t.check('Zurück: Ausgangszeile ist wieder offen UND ihre Terminliste ebenfalls (war offen).', detailOpen(k0) && isOpen());
+  toggleHead().click();                                        // Liste zu, dann direkter Sprung (nicht aus der Liste)
+  w.jumpToProgShow(target);
+  t.check('Sprung NICHT aus der Terminliste (z. B. aus der Künstler-Übersicht): Liste bleibt zu.', !tTerms().classList.contains('open'));
+
+  // Events/Einzeltermine: keine Kopfzeile
+  t.check('Künstler mit einem Termin hat weder Kopfzeile noch Liste.', (() => { w.toggleProgRating(ridOf('nid:1')); return !d.getElementById(`${ridOf('nid:1')}-terms`); })());
+
   t.finish();
 })();

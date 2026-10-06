@@ -233,7 +233,10 @@ body.jump-busy::after { content: 'Springe …'; position: fixed; left: 50%; tran
 .prog-more-ind { font-size: 11px; line-height: 1; opacity: .55; flex-shrink: 0; }
 /* Terminliste in der Detailansicht (nur bei Künstlern mit mehreren Terminen) */
 .prog-terms { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--border); }
-.prog-terms-title { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+.prog-terms-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text2); cursor: pointer; padding: 2px 0 4px; }
+.prog-terms-arrow { font-size: 11px; color: var(--text3); }
+.prog-terms-body { display: none; }
+.prog-terms.open .prog-terms-body { display: block; }
 .prog-term { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 0; color: var(--text); cursor: pointer; }
 .prog-term .t-day { width: 52px; flex-shrink: 0; color: var(--text2); }
 .prog-term .t-time { width: 74px; flex-shrink: 0; }
@@ -3183,11 +3186,27 @@ function termineInnerHTML(a) {
       + (rat > 0 ? miniStarsShow(rat) : '');
     return `<div class="prog-term${isShowPast(x) ? ' past' : ''}" role="button" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(k)}', true))"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">${x.location || 'TBA'}</span><span class="t-icons">${icons}</span></div>`;
   }).join('');
-  return `<div class="prog-terms-title">Termine</div>${rows}`;
+  return rows;
 }
+// Die Terminliste ist standardmäßig ZUGEKLAPPT (nur Kopfzeile "Termine (3) ▸"):
+// sie wird nicht immer gebraucht und nähme sonst in jeder aufgeklappten Zeile
+// Platz weg. Das Auf-/Zuklappen betrifft nur diesen Abschnitt - die Zeile selbst
+// bleibt offen (stopPropagation).
 function termineSectionHTML(a, rid) {
   const inner = termineInnerHTML(a);
-  return inner ? `<div class="prog-terms" id="${rid}-terms" onclick="event.stopPropagation()">${inner}</div>` : '';
+  if (!inner) return '';
+  const n = artistShowsSorted(a.name).length;
+  return `<div class="prog-terms" id="${rid}-terms" onclick="event.stopPropagation()"><div class="prog-terms-head" role="button" aria-expanded="false" onclick="toggleTermine('${rid}')"><span>Termine (${n})</span><span class="prog-terms-arrow">▸</span></div><div class="prog-terms-body" id="${rid}-termsbody">${inner}</div></div>`;
+}
+function toggleTermine(rid, force) {
+  const el = document.getElementById(`${rid}-terms`);
+  if (!el) return;
+  const open = typeof force === 'boolean' ? force : !el.classList.contains('open');
+  el.classList.toggle('open', open);
+  const head = el.querySelector('.prog-terms-head');
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+  const arrow = el.querySelector('.prog-terms-arrow');
+  if (arrow) arrow.textContent = open ? '▾' : '▸';
 }
 // Zieht die Terminlisten ALLER sichtbaren Zeilen des Künstlers nach, wenn sich
 // bei einem seiner Termine Ziel/Dauer/Bewertung geändert hat.
@@ -3195,8 +3214,8 @@ function refreshTermineLists(skey) {
   const entry = auftritte.find(x => showKey(x) === skey);
   if (!entry) return;
   (progRidsByName[entry.name] || []).forEach(r => {
-    const el = document.getElementById(`${r}-terms`), a = progEntryByRid[r];
-    if (el && a) el.innerHTML = termineInnerHTML(a);
+    const el = document.getElementById(`${r}-termsbody`), a = progEntryByRid[r];
+    if (el && a) el.innerHTML = termineInnerHTML(a);   // nur den Inhalt: Auf-/Zu-Zustand bleibt erhalten
   });
 }
 
@@ -3279,7 +3298,11 @@ function captureJumpOrigin(targetTab, subject, allowSameTab) {
   const origin = { tab: from, label: cfg.label, subject: subject || '', anchor: captureScrollAnchor(cfg.listId, cfg.isRowEl, cfg.keyOf), openKey: null };
   if (from === 'programm' && openProgRid) {
     const row = [...document.querySelectorAll('#progList .prog-item')].find(el => (el.getAttribute('onclick') || '').includes(`'${openProgRid}'`));
-    if (row) origin.openKey = row.dataset.skey;
+    if (row) {
+      origin.openKey = row.dataset.skey;
+      const termsEl = document.getElementById(`${openProgRid}-terms`);
+      origin.termsOpen = !!(termsEl && termsEl.classList.contains('open'));
+    }
   }
   // Sprung INNERHALB der Programm-Übersicht (z. B. aus der Terminliste): hier
   // können die Programm-Filter durch den Sprung verändert werden (Ausgangs-
@@ -3395,6 +3418,7 @@ function jumpBack() {
     const rid = row && (row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/) || [])[1];
     const detail = rid && document.getElementById(`${rid}-detail`);
     if (detail && detail.classList.contains('collapsed')) toggleProgRating(rid);
+    if (rid && o.termsOpen) toggleTermine(rid, true);
   }
   const restore = () => {
     if (!o.anchor) return;
@@ -3453,6 +3477,7 @@ function jumpToProgShow(skey, keepOrigin) {
   const rid = (row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/) || [])[1];
   const detail = rid && document.getElementById(`${rid}-detail`);
   if (detail && detail.classList.contains('collapsed')) toggleProgRating(rid);
+  if (rid && keepOrigin === true) toggleTermine(rid, true);   // Sprung aus der Terminliste: dort bleibt sie offen
   const header = document.querySelector('#progList .prog-day-header');
   scrollListToEl('progList', row, header ? header.offsetHeight : 0);
   flashEl(row);
