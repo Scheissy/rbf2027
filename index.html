@@ -161,6 +161,7 @@ button.filter { cursor: pointer; white-space: nowrap; }
 .jump-back-main { background: none; border: 0; color: var(--accent); font-size: 13px; font-weight: 600; padding: 8px 8px 8px 14px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .jump-back-x { background: none; border: 0; border-left: 1px solid var(--border); color: var(--text3); font-size: 12px; padding: 8px 12px; cursor: pointer; }
 body.has-jump-back .toast { bottom: calc(var(--safe-bottom) + 114px); }
+.settings-select { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; padding: 6px 8px; max-width: 52%; flex-shrink: 0; }
 .jump-shield { position: fixed; inset: 0; z-index: 2000; background: transparent; }
 body.jump-busy::after { content: 'Springe …'; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 80px); z-index: 2100; background: var(--surface); border: 1px solid var(--accent); color: var(--accent); border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.4); pointer-events: none; }
 .jump-flash { animation: jumpFlash 1.8s ease-out; }
@@ -665,6 +666,32 @@ input[type=file] { display: none; }
       </label>
       <label class="settings-toggle-row">
         <div class="settings-toggle-text">
+          <div class="settings-toggle-label">↩ Zurück-Chip nach Sprüngen</div>
+          <div class="settings-toggle-desc">Wann der Chip zum Zurückspringen wieder verschwindet</div>
+        </div>
+        <select class="settings-select" id="settingBackChipMode" onchange="setBackChipSetting('backChipMode', this.value)">
+          <option value="off">Komplett aus</option>
+          <option value="scroll">Bei Bewegung ausblenden</option>
+          <option value="time">Nach Zeit ausblenden</option>
+          <option value="manual">Nur manuell schließen</option>
+        </select>
+      </label>
+      <label class="settings-toggle-row" id="rowBackChipSeconds">
+        <div class="settings-toggle-text">
+          <div class="settings-toggle-label">⏱ Anzeigedauer des Chips</div>
+          <div class="settings-toggle-desc">Nach dieser Zeit blendet sich der Chip aus</div>
+        </div>
+        <select class="settings-select" id="settingBackChipSeconds" onchange="setBackChipSetting('backChipSeconds', this.value)">
+          <option value="5">5 Sekunden</option>
+          <option value="10">10 Sekunden</option>
+          <option value="15">15 Sekunden</option>
+          <option value="20">20 Sekunden</option>
+          <option value="30">30 Sekunden</option>
+          <option value="60">60 Sekunden</option>
+        </select>
+      </label>
+      <label class="settings-toggle-row">
+        <div class="settings-toggle-text">
           <div class="settings-toggle-label">💾 Filter-Persistenz</div>
           <div class="settings-toggle-desc">Filter-Einstellungen (Künstler- & Programm-Übersicht) über Neustarts hinweg merken</div>
         </div>
@@ -929,7 +956,7 @@ let statsAusgeblendetFilter = false;
 // lebt jetzt rein hier, gesetzt/zurückgesetzt über filterByStat().
 let kuenstlerSeenFilter = '';
 // Anzeige-Einstellungen (Settings-Tab), geräteweise in localStorage gespeichert
-let appSettings = { showMapsLinks: true, showListening: true, showSoundRef: true, hiddenLocations: [], persistFilters: true, showMusicEvents: true, showOtherEvents: true, progFiltersExpanded: false, showRbfEvents: true, auswertungSort: 'count' };
+let appSettings = { showMapsLinks: true, showListening: true, showSoundRef: true, hiddenLocations: [], persistFilters: true, showMusicEvents: true, showOtherEvents: true, progFiltersExpanded: false, showRbfEvents: true, auswertungSort: 'count', backChipMode: 'time', backChipSeconds: 15 };
 let selectedGenres = new Set(); // Mehrfachauswahl im Genre-Filter (leer = alle)
 let selectedLocs = new Set(); // Mehrfachauswahl im Location-Filter der Programm-Übersicht (leer = alle)
 // Eigener Genre-Mehrfachfilter für die Programm-Übersicht - analog zum
@@ -2796,6 +2823,14 @@ function applySettingsUI() {
   document.getElementById('settingShowMusicEvents').checked = appSettings.showMusicEvents;
   document.getElementById('settingShowOtherEvents').checked = appSettings.showOtherEvents;
   document.getElementById('settingShowRbfEvents').checked = appSettings.showRbfEvents;
+  document.getElementById('settingBackChipMode').value = backChipMode();
+  const secSel = document.getElementById('settingBackChipSeconds');
+  // Eine nicht in der Liste vorhandene (z. B. importierte) Dauer wird als eigene Option ergänzt
+  if (![...secSel.options].some(o => Number(o.value) === backChipSeconds())) {
+    const o = document.createElement('option'); o.value = String(backChipSeconds()); o.textContent = `${backChipSeconds()} Sekunden`; secSel.appendChild(o);
+  }
+  secSel.value = String(backChipSeconds());
+  applyBackChipSettingChange();
   updateSoundRefFilterVisibility();
   updateProgFiltersPanelVisibility();
   updateRbfEventsVisibility();
@@ -3204,6 +3239,21 @@ function runJump(fn) {
 // gemerkt (ein neuer Sprung ersetzt die alte Stelle). Der Chip verschwindet
 // beim Tipp, über das ✕ und bei jedem (manuellen) Tabwechsel; kein Timer.
 let jumpOrigin = null;
+// Einstellung "Zurück-Chip" (Settings-Tab): 'off' = nie anzeigen, 'scroll' =
+// ausblenden, sobald man die Sprungposition verlässt, 'time' = nach N Sekunden
+// ausblenden (Standard: 15), 'manual' = nur per Tipp/✕/Tabwechsel. Ungültige
+// gespeicherte Werte fallen auf den Standard zurück.
+const BACK_CHIP_MODES = ['off', 'scroll', 'time', 'manual'];
+const BACK_CHIP_SECONDS_OPTIONS = [5, 10, 15, 20, 30, 60];
+function backChipMode() {
+  return BACK_CHIP_MODES.includes(appSettings.backChipMode) ? appSettings.backChipMode : 'time';
+}
+function backChipSeconds() {
+  const n = Number(appSettings.backChipSeconds);
+  return isFinite(n) && n >= 1 && n <= 600 ? n : 15;
+}
+let jumpChipTimer = null;
+function clearJumpChipTimer() { if (jumpChipTimer) clearTimeout(jumpChipTimer); jumpChipTimer = null; }
 function captureScrollAnchor(listId, isRowEl, keyOf) {
   const list = document.getElementById(listId);
   if (!list) return null;
@@ -3269,19 +3319,39 @@ function applyProgFilters(f) {
 function showJumpBackChip(origin) {
   jumpOrigin = origin || null;
   const chip = document.getElementById('jumpBackChip');
-  if (!jumpOrigin) { hideJumpBackChip(); return; }
+  if (!jumpOrigin || backChipMode() === 'off') { hideJumpBackChip(); return; }
+  clearJumpChipTimer();
+  if (backChipMode() === 'time') jumpChipTimer = setTimeout(hideJumpBackChip, backChipSeconds() * 1000);
   document.getElementById('jumpBackLabel').textContent = `← ${jumpOrigin.label}${jumpOrigin.subject ? ': ' + jumpOrigin.subject : ''}`;
   chip.style.display = 'flex';
   document.body.classList.add('has-jump-back');
 }
 function hideJumpBackChip() {
   stopJumpScrollWatch();
+  clearJumpChipTimer();
   jumpOrigin = null;
   const chip = document.getElementById('jumpBackChip');
   if (chip) chip.style.display = 'none';
   document.body.classList.remove('has-jump-back');
 }
 function dismissJumpBack() { hideJumpBackChip(); }
+// Wird aufgerufen, wenn die Chip-Einstellung geändert wird: ein gerade sichtbarer
+// Chip folgt der neuen Einstellung (aus -> weg, Zeit -> Timer neu, sonst Timer weg).
+function applyBackChipSettingChange() {
+  const seconds = document.getElementById('rowBackChipSeconds');
+  if (seconds) seconds.style.display = backChipMode() === 'time' ? 'flex' : 'none';
+  if (!jumpOrigin) return;
+  const mode = backChipMode();
+  if (mode === 'off') { hideJumpBackChip(); return; }
+  clearJumpChipTimer();
+  if (mode !== 'scroll') stopJumpScrollWatch();
+  if (mode === 'time') jumpChipTimer = setTimeout(hideJumpBackChip, backChipSeconds() * 1000);
+}
+function setBackChipSetting(key, val) {
+  appSettings[key] = key === 'backChipSeconds' ? Number(val) : val;
+  saveToStorage();
+  applyBackChipSettingChange();
+}
 // Scroll-Überwachung: Verlässt man die Sprungposition (die Ziel-Zeile wandert
 // mehr als JUMP_CHIP_LEAVE_PX von ihrem Landeplatz weg), blendet sich der Chip
 // aus - man ist dann ohnehin woanders unterwegs. Kein Timer: die Landeposition
@@ -3291,6 +3361,8 @@ const JUMP_CHIP_LEAVE_PX = 80;
 let jumpScrollWatch = null;
 function startJumpScrollWatch(listId, findRow) {
   stopJumpScrollWatch();
+  if (backChipMode() !== 'scroll') return;   // nur im Modus "ausblenden bei Bewegung"
+
   const list = document.getElementById(listId);
   const row = findRow();
   if (!list || !row || !jumpOrigin) return;

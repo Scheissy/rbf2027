@@ -4,6 +4,9 @@ const { loadApp, createChecker } = require('./test-helpers');
   const { window: w, document: d } = await loadApp();
   const t = createChecker();
   const ev = code => w.eval(code);
+  // Dieser Test prüft das Verhalten "bei Bewegung ausblenden" (Standard der App ist seit der
+  // Einstellung "nach Zeit"; die Modi testet test_back_chip_setting.js).
+  ev("appSettings.backChipMode = 'scroll';");
 
   // ── Fake-Layout: jsdom hat keine Geometrie. Jede Zeile in progList/artistList
   // ist 100px hoch, die Liste 600px; scrollTop ist frei setzbar.
