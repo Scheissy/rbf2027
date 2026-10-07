@@ -20,7 +20,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   const modal = () => d.getElementById('durationModal');
   const input = () => d.getElementById('durationModalInput');
   const minus = () => d.getElementById('durationModalMinus');
-  const plus = () => [...modal().querySelectorAll('.duration-step-btn')].find(b => b.textContent === '+');
+  const plus = () => d.getElementById('durationModalPlus');   // Minuten-Plus (Std-Plus hat eine eigene Id)
   const preview = () => d.getElementById('durationModalPreview').textContent;
   const summary = () => d.getElementById(`${rid}-durationsummary`);
   const fire = (el, type) => el.dispatchEvent(new w.Event(type, { bubbles: true }));

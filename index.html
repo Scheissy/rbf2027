@@ -187,14 +187,25 @@ body.jump-busy::after { content: 'Springe …'; position: fixed; left: 50%; tran
 .duration-btn { display: inline-flex; align-items: center; box-sizing: border-box; height: 28px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; line-height: 1; padding: 0 10px; cursor: pointer; }
 .duration-btn:active { background: var(--surface); }
 .duration-btn-empty { color: var(--text3); }
-.duration-stepper { display: flex; align-items: center; justify-content: center; gap: 10px; }
-.duration-step-btn { width: 52px; height: 52px; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 26px; line-height: 1; font-weight: 600; cursor: pointer; }
-.duration-step-btn:active { background: var(--bg); }
-.duration-step-btn:disabled { opacity: .35; cursor: default; }
-.duration-input { width: 96px; height: 52px; box-sizing: border-box; text-align: center; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 24px; font-weight: 700; padding: 0 4px; -moz-appearance: textfield; appearance: textfield; }
+/* Dauer-Dialog als "Wecker-Räder": Wert in der Mitte groß, darüber/darunter der
+   kleinere bzw. größere Nachbarwert (antippbar). Per Wischen hoch/runter (mit
+   Schwung) oder Mausrad wird gedreht; Minuten springen im 5er-Takt. */
+.duration-cols { --wh-w: 84px; --wh-row: 34px; --wh-center: 46px; display: flex; align-items: flex-start; justify-content: center; gap: 6px; }
+.duration-col { display: flex; flex-direction: column; align-items: center; gap: 0; touch-action: none; user-select: none; -webkit-user-select: none; cursor: ns-resize; }
+/* ":" sitzt auf Höhe der Mittelzeile: übersprungen wird die obere Nachbar-Zeile */
+.duration-sep { display: flex; align-items: center; justify-content: center; height: var(--wh-center); margin-top: var(--wh-row); font-size: 32px; font-weight: 700; color: var(--text); }
+.duration-nb { width: var(--wh-w); height: var(--wh-row); padding: 0; border: 0; background: none; color: var(--text3); font-size: 22px; font-weight: 600; line-height: 1; cursor: pointer; }
+.duration-nb:active { color: var(--text2); }
+.duration-nb:disabled { cursor: default; }
+.duration-input { width: var(--wh-w); height: var(--wh-center); box-sizing: border-box; text-align: center; background: transparent; border: 0; border-radius: var(--radius-sm); color: var(--text); font-size: 34px; font-weight: 700; padding: 0; -moz-appearance: textfield; appearance: textfield; }
+.duration-input:focus { outline: none; background: var(--surface2); }
 .duration-input::-webkit-outer-spin-button, .duration-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .duration-input-suggest { color: var(--text3); font-style: italic; }
-.duration-unit { font-size: 14px; color: var(--text2); }
+.duration-unit { font-size: 12px; color: var(--text2); line-height: 1; }
+/* Kompakter Dauer-Dialog: weniger Innenabstand in Kopf, Inhalt und Fuß */
+#durationModal .modal-header { padding: 12px 16px 8px; }
+#durationModal .modal-body { padding: 12px 16px 8px; gap: 6px; }
+#durationModal .modal-footer { padding: 10px 16px; }
 .duration-preview { text-align: center; font-size: 13px; color: var(--text2); min-height: 18px; }
 .prog-row2 select { flex: 1; height: 34px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 8px; color: var(--text); font-size: 13px; }
 .prog-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -416,11 +427,20 @@ input[type=file] { display: none; }
       <button class="modal-close" onclick="closeDurationModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="duration-stepper">
-        <button type="button" class="duration-step-btn" id="durationModalMinus" aria-label="5 Minuten weniger" onclick="stepDurationModal(-5)">−</button>
-        <input type="number" class="duration-input" id="durationModalInput" inputmode="numeric" min="0" max="999" step="1" value="0" aria-label="Dauer in Minuten" onfocus="this.select()" onchange="commitDurationModalInput()">
-        <button type="button" class="duration-step-btn" aria-label="5 Minuten mehr" onclick="stepDurationModal(5)">+</button>
-        <span class="duration-unit">Min</span>
+      <div class="duration-cols">
+        <div class="duration-col" id="durationModalHoursRow" style="display:none" onpointerdown="wheelPointerDown(event,'h')" onwheel="wheelOnWheel(event,'h')">
+          <button type="button" class="duration-nb" id="durationModalHMinus" aria-label="1 Stunde weniger" onclick="stepDurationModalHours(-1)"></button>
+          <input type="number" class="duration-input" id="durationModalHInput" inputmode="numeric" min="0" max="16" step="1" value="0" aria-label="Dauer: Stunden" onfocus="this.select()" onchange="commitDurationModalInput()">
+          <button type="button" class="duration-nb" id="durationModalHPlus" aria-label="1 Stunde mehr" onclick="stepDurationModalHours(1)"></button>
+          <span class="duration-unit">Std</span>
+        </div>
+        <div class="duration-sep" id="durationModalSep" style="display:none">:</div>
+        <div class="duration-col" id="durationModalMinutesCol" onpointerdown="wheelPointerDown(event,'m')" onwheel="wheelOnWheel(event,'m')">
+          <button type="button" class="duration-nb" id="durationModalMinus" aria-label="5 Minuten weniger" onclick="stepDurationModal(-5)"></button>
+          <input type="number" class="duration-input" id="durationModalInput" inputmode="numeric" min="0" max="999" step="1" value="0" aria-label="Dauer in Minuten" onfocus="this.select()" onchange="commitDurationModalInput()">
+          <button type="button" class="duration-nb" id="durationModalPlus" aria-label="5 Minuten mehr" onclick="stepDurationModal(5)"></button>
+          <span class="duration-unit">Min</span>
+        </div>
       </div>
       <div class="duration-preview" id="durationModalPreview"></div>
     </div>
@@ -677,6 +697,16 @@ input[type=file] { display: none; }
           <option value="scroll">Bei Bewegung ausblenden</option>
           <option value="time">Nach Zeit ausblenden</option>
           <option value="manual">Nur manuell schließen</option>
+        </select>
+      </label>
+      <label class="settings-toggle-row">
+        <div class="settings-toggle-text">
+          <div class="settings-toggle-label">⏱ Eingabe der Auftritts-Dauer</div>
+          <div class="settings-toggle-desc">Im Dauer-Dialog nur Minuten oder getrennt Stunden und Minuten eingeben</div>
+        </div>
+        <select class="settings-select" id="settingDurationInputMode" onchange="setDurationInputSetting(this.value)">
+          <option value="minutes">Minuten</option>
+          <option value="hm">Stunden:Minuten</option>
         </select>
       </label>
       <label class="settings-toggle-row" id="rowBackChipSeconds">
@@ -959,7 +989,7 @@ let statsAusgeblendetFilter = false;
 // lebt jetzt rein hier, gesetzt/zurückgesetzt über filterByStat().
 let kuenstlerSeenFilter = '';
 // Anzeige-Einstellungen (Settings-Tab), geräteweise in localStorage gespeichert
-let appSettings = { showMapsLinks: true, showListening: true, showSoundRef: true, hiddenLocations: [], persistFilters: true, showMusicEvents: true, showOtherEvents: true, progFiltersExpanded: false, showRbfEvents: true, auswertungSort: 'count', backChipMode: 'time', backChipSeconds: 15 };
+let appSettings = { showMapsLinks: true, showListening: true, showSoundRef: true, hiddenLocations: [], persistFilters: true, showMusicEvents: true, showOtherEvents: true, progFiltersExpanded: false, showRbfEvents: true, auswertungSort: 'count', backChipMode: 'time', backChipSeconds: 15, durationInputMode: 'minutes' };
 let selectedGenres = new Set(); // Mehrfachauswahl im Genre-Filter (leer = alle)
 let selectedLocs = new Set(); // Mehrfachauswahl im Location-Filter der Programm-Übersicht (leer = alle)
 // Eigener Genre-Mehrfachfilter für die Programm-Übersicht - analog zum
@@ -2160,13 +2190,53 @@ function durationButtonHTML(rid, skeyEsc, nameEsc, skey, sug) {
 }
 // val = echter gespeicherter Wert. Ist er 0 und gibt es einen Vorschlag, zeigt
 // das Modal den Vorschlag (gedimmt) an - OHNE ihn zu speichern.
-function syncDurationModal(val) {
-  const suggestMode = val <= 0 && durationModalSuggest > 0;
-  const shown = suggestMode ? durationModalSuggest : val;
+// Eingabeformat der Dauer im Modal (Settings): 'minutes' = ein Feld mit allen
+// Minuten (Standard), 'hm' = getrennte Felder Stunden + Minuten. Gespeichert
+// wird in beiden Fällen immer die Gesamtzahl der Minuten.
+function durationInputMode() { return appSettings.durationInputMode === 'hm' ? 'hm' : 'minutes'; }
+function setDurationInputSetting(val) {
+  appSettings.durationInputMode = val === 'hm' ? 'hm' : 'minutes';
+  saveToStorage();
+}
+// Stunden-Schritt: +/- 60 Minuten; die Minuten bleiben erhalten. Unter 1 Stunde
+// bleibt der Wert beim Stunden-Minus unverändert (Stundenfeld steht schon auf 0);
+// nach oben wird bei DURATION_MAX_MIN gedeckelt.
+function nextDurationHourStep(cur, delta) {
+  if (delta > 0) return cur + 60 <= DURATION_MAX_MIN ? cur + 60 : cur;
+  return cur >= 60 ? cur - 60 : cur;
+}
+// Zeichnet den Dialog für einen Wert (shown = Gesamtminuten). val = Wert, auf den
+// sich "Zurücksetzen" und die Vorschau beziehen. Speichert NICHTS - beim Drehen
+// der Räder wird erst am Ende der Geste gespeichert (siehe wheelCommit).
+function paintDurationModal(shown, suggestMode, val) {
+  const hm = durationInputMode() === 'hm';
   const inputEl = document.getElementById('durationModalInput');
-  if (inputEl) { inputEl.value = String(shown); inputEl.classList.toggle('duration-input-suggest', suggestMode); }
-  const minusEl = document.getElementById('durationModalMinus');
-  if (minusEl) minusEl.disabled = shown <= 0;
+  if (inputEl) {
+    // Std:Min -> dieses Feld ist nur der Minuten-ANTEIL (0-59), sonst alle Minuten
+    inputEl.value = String(hm ? shown % 60 : shown);
+    inputEl.max = hm ? '59' : String(DURATION_MAX_MIN);
+    inputEl.classList.toggle('duration-input-suggest', suggestMode);
+  }
+  const hoursRow = document.getElementById('durationModalHoursRow');
+  if (hoursRow) hoursRow.style.display = hm ? 'flex' : 'none';
+  const sepEl = document.getElementById('durationModalSep');
+  if (sepEl) sepEl.style.display = hm ? 'flex' : 'none';
+  const hInput = document.getElementById('durationModalHInput');
+  if (hInput) { hInput.value = String(Math.floor(shown / 60)); hInput.classList.toggle('duration-input-suggest', suggestMode); }
+  // Nachbar-Zeilen: zeigen, wohin ein Tipp bzw. ein Schritt führt (Minuten: nächster
+  // 5er, Stunden: +/- 1 Std). Wo es nicht weitergeht, bleibt die Zeile leer und inaktiv.
+  const setNb = (id, target, label) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = target === shown;
+    el.textContent = target === shown ? '' : String(label);
+  };
+  const minPrev = nextDurationStep(shown, -5), minNext = nextDurationStep(shown, 5);
+  setNb('durationModalMinus', minPrev, hm ? minPrev % 60 : minPrev);
+  setNb('durationModalPlus', minNext, hm ? minNext % 60 : minNext);
+  const hPrev = nextDurationHourStep(shown, -1), hNext = nextDurationHourStep(shown, 1);
+  setNb('durationModalHMinus', hPrev, Math.floor(hPrev / 60));
+  setNb('durationModalHPlus', hNext, Math.floor(hNext / 60));
   const prevEl = document.getElementById('durationModalPreview');
   if (prevEl) prevEl.textContent = suggestMode
     ? `Vorschlag aus Start-/Endzeit (${formatDuration(shown)}) - noch nicht gespeichert`
@@ -2176,6 +2246,129 @@ function syncDurationModal(val) {
   const saveEl = document.getElementById('durationModalSave');
   if (saveEl) saveEl.textContent = suggestMode ? 'Als Auftritt speichern' : 'Fertig';
 }
+// val = echter gespeicherter Wert. Ist er 0 und gibt es einen Vorschlag, zeigt
+// das Modal den Vorschlag (gedimmt) an - OHNE ihn zu speichern.
+function syncDurationModal(val) {
+  const suggestMode = val <= 0 && durationModalSuggest > 0;
+  paintDurationModal(suggestMode ? durationModalSuggest : val, suggestMode, val);
+}
+
+// ── Räder: Drehen per Wischen (mit Schwung), Mausrad oder Tipp auf die Nachbarzeile ──
+// Während der Geste wird nur ein Entwurf gezeichnet; gespeichert wird EINMAL am
+// Ende (kein Speichern bei jedem Schritt). Wischen nach unten = kleinere Werte
+// (wie beim Wecker: die Zahlen laufen mit dem Finger mit).
+const WHEEL_STEP_PX = 34;     // Wischstrecke je Schritt (ca. eine Zeilenhöhe)
+const WHEEL_START_PX = 6;     // erst ab dieser Bewegung zählt es als Wischen (sonst Tipp)
+let wheelDrag = null, wheelInertia = null, wheelWheelDrag = null, wheelWheelTimer = null, wheelClickBlockUntil = 0;
+function wheelStepFn(kind) { return kind === 'h' ? (t, dir) => nextDurationHourStep(t, dir) : (t, dir) => nextDurationStep(t, dir * 5); }
+function wheelBaseTotal() { return showDurations[durationModalSkey] || durationModalSuggest || 0; }
+function wheelApplySteps(d, n) {
+  const fn = wheelStepFn(d.kind);
+  let changed = false;
+  for (let i = 0; i < Math.abs(n); i++) {
+    const nt = fn(d.total, n > 0 ? 1 : -1);
+    if (nt === d.total) { d.hitEnd = true; break; }
+    d.total = nt; changed = true;
+  }
+  if (changed) paintDurationModal(d.total, false, d.total);
+}
+function wheelCommit(d) {
+  if (durationModalSkey === null) return;
+  const stored = showDurations[durationModalSkey] || 0;
+  // Unverändert (bzw. nur der angezeigte Vorschlag): nichts speichern
+  if (d.total !== (stored || durationModalSuggest || 0)) setShowDuration(durationModalRid, durationModalSkey, d.total);
+  else syncDurationModal(stored);
+}
+function wheelPointerDown(e, kind) {
+  if (durationModalSkey === null) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  finishWheelInertia();
+  wheelDrag = { kind, startY: e.clientY, lastY: e.clientY, acc: 0, moved: false, total: wheelBaseTotal(), samples: [{ t: performance.now(), y: e.clientY }], el: e.currentTarget, pid: e.pointerId };
+  document.addEventListener('pointermove', wheelPointerMove);
+  document.addEventListener('pointerup', wheelPointerUp);
+  document.addEventListener('pointercancel', wheelPointerUp);
+}
+function wheelPointerMove(e) {
+  const d = wheelDrag;
+  if (!d) return;
+  if (!d.moved) {
+    if (Math.abs(e.clientY - d.startY) < WHEEL_START_PX) return;
+    d.moved = true; d.lastY = e.clientY;
+    try { if (d.pid !== undefined && d.el.setPointerCapture) d.el.setPointerCapture(d.pid); } catch (err) { /* ohne Capture weiter */ }
+    if (document.activeElement && document.activeElement.blur && /^(durationModal(H)?Input)$/.test(document.activeElement.id)) document.activeElement.blur();
+  }
+  const dy = e.clientY - d.lastY;
+  d.lastY = e.clientY;
+  d.acc += dy;
+  d.samples.push({ t: performance.now(), y: e.clientY });
+  while (d.samples.length > 2 && d.samples[0].t < d.samples[d.samples.length - 1].t - 120) d.samples.shift();
+  const steps = Math.trunc(d.acc / WHEEL_STEP_PX);
+  if (steps) { d.acc -= steps * WHEEL_STEP_PX; wheelApplySteps(d, -steps); }
+}
+function wheelPointerUp() {
+  document.removeEventListener('pointermove', wheelPointerMove);
+  document.removeEventListener('pointerup', wheelPointerUp);
+  document.removeEventListener('pointercancel', wheelPointerUp);
+  const d = wheelDrag;
+  wheelDrag = null;
+  if (!d || !d.moved) return;                           // nur getippt: normale Klick-Behandlung
+  wheelClickBlockUntil = Date.now() + 400;              // der Klick nach dem Wischen darf nichts auslösen
+  const first = d.samples[0], last = d.samples[d.samples.length - 1];
+  const dt = last.t - first.t;
+  // Wurde der Finger vor dem Loslassen kurz angehalten, gibt es keinen Schwung.
+  const v = dt > 0 && performance.now() - last.t <= 100 ? (last.y - first.y) / dt : 0;   // px/ms, positiv = nach unten
+  if (Math.abs(v) > 0.5) startWheelInertia(d, v);      // erst ab ca. 500 px/s: ein bewusstes Wischen um 1-2 Schritte läuft nicht nach
+  else wheelCommit(d);
+}
+// Schwung: das Rad läuft nach dem Loslassen noch aus (nötig, um im Minuten-Modus
+// bis zu 999 Minuten in 5er-Schritten zu erreichen).
+function startWheelInertia(d, v) {
+  wheelInertia = { d, v, last: performance.now(), raf: 0 };
+  const tick = now => {
+    const w = wheelInertia;
+    if (!w) return;
+    const dt = Math.min(48, now - w.last);
+    w.last = now;
+    w.d.acc += w.v * dt;
+    w.v *= Math.pow(0.95, dt / 16.7);
+    const steps = Math.trunc(w.d.acc / WHEEL_STEP_PX);
+    if (steps) { w.d.acc -= steps * WHEEL_STEP_PX; wheelApplySteps(w.d, -steps); }
+    if (Math.abs(w.v) < 0.04 || w.d.hitEnd) { finishWheelInertia(); return; }
+    w.raf = requestAnimationFrame(tick);
+  };
+  wheelInertia.raf = requestAnimationFrame(tick);
+}
+function finishWheelInertia() {
+  const w = wheelInertia;
+  if (!w) return;
+  wheelInertia = null;
+  if (w.raf) cancelAnimationFrame(w.raf);
+  wheelCommit(w.d);
+}
+// Mausrad (Desktop): ein Rastschritt = ein Schritt, gespeichert wird kurz nach dem letzten.
+function wheelOnWheel(e, kind) {
+  if (durationModalSkey === null) return;
+  e.preventDefault();
+  clearTimeout(wheelWheelTimer);
+  if (wheelWheelDrag && wheelWheelDrag.kind !== kind) { wheelCommit(wheelWheelDrag); wheelWheelDrag = null; }
+  if (!wheelWheelDrag) wheelWheelDrag = { kind, total: wheelBaseTotal() };
+  wheelApplySteps(wheelWheelDrag, e.deltaY > 0 ? 1 : -1);
+  wheelWheelTimer = setTimeout(flushWheelWheel, 300);
+}
+function flushWheelWheel() {
+  clearTimeout(wheelWheelTimer);
+  const d = wheelWheelDrag;
+  wheelWheelDrag = null;
+  if (d) wheelCommit(d);
+}
+// Laufender Schwung/Mausrad-Entwurf wird vor dem Schließen gespeichert.
+function flushWheels() { finishWheelInertia(); flushWheelWheel(); }
+// Der Klick, der direkt auf ein Wischen folgt, wird verschluckt (sonst würde das
+// Loslassen über einer Nachbarzeile einen zusätzlichen Schritt auslösen).
+document.getElementById('durationModal').addEventListener('click', e => {
+  if (Date.now() < wheelClickBlockUntil) { e.stopPropagation(); e.preventDefault(); }
+}, true);
+
 function openDurationModal(rid, skey, name, sug) {
   durationModalRid = rid; durationModalSkey = skey; durationModalSuggest = sug > 0 ? sug : 0;
   document.getElementById('durationModalTitle').textContent = name ? `Dauer: ${name}` : 'Dauer';
@@ -2183,6 +2376,7 @@ function openDurationModal(rid, skey, name, sug) {
   document.getElementById('durationModal').classList.add('open');
 }
 function closeDurationModal() {
+  flushWheels();   // laufender Schwung / Mausrad-Entwurf wird zuerst gespeichert
   // Noch nicht per "change" übernommene Eingabe sichern (Tippen -> sofort Fertig).
   if (durationModalSkey !== null) commitDurationModalInput();
   document.getElementById('durationModal').classList.remove('open');
@@ -2206,7 +2400,12 @@ function confirmDurationModal() {
 function commitDurationModalInput() {
   if (durationModalSkey === null) return;
   const cur = showDurations[durationModalSkey] || 0;
-  const val = parseDurationInput(document.getElementById('durationModalInput').value);
+  const minVal = parseDurationInput(document.getElementById('durationModalInput').value);
+  // Std:Min: Gesamtminuten = Stunden * 60 + Minuten. Minuten über 59 (z. B. 75)
+  // werden dabei in die Stunden übertragen (-> 1 h 15 min mehr), nichts geht verloren.
+  const val = durationInputMode() === 'hm'
+    ? Math.min(DURATION_MAX_MIN, parseDurationInput(document.getElementById('durationModalHInput').value) * 60 + minVal)
+    : minVal;
   // Unveränderter Vorschlag im Feld = keine Eingabe -> NICHT speichern.
   const untouchedSuggestion = cur === 0 && durationModalSuggest > 0 && val === durationModalSuggest;
   if (val !== cur && !untouchedSuggestion) setShowDuration(durationModalRid, durationModalSkey, val);
@@ -2217,6 +2416,12 @@ function stepDurationModal(delta) {
   // Stepper startet beim gespeicherten Wert, sonst beim angezeigten Vorschlag.
   const base = showDurations[durationModalSkey] || durationModalSuggest || 0;
   stepShowDuration(durationModalRid, durationModalSkey, delta, base);
+}
+function stepDurationModalHours(delta) {
+  if (durationModalSkey === null) return;
+  const base = showDurations[durationModalSkey] || durationModalSuggest || 0;
+  const next = nextDurationHourStep(base, delta);
+  if (next !== base) setShowDuration(durationModalRid, durationModalSkey, next);
 }
 function resetDurationModal() {
   if (durationModalSkey === null) return;
@@ -2826,6 +3031,7 @@ function applySettingsUI() {
   document.getElementById('settingShowMusicEvents').checked = appSettings.showMusicEvents;
   document.getElementById('settingShowOtherEvents').checked = appSettings.showOtherEvents;
   document.getElementById('settingShowRbfEvents').checked = appSettings.showRbfEvents;
+  document.getElementById('settingDurationInputMode').value = durationInputMode();
   document.getElementById('settingBackChipMode').value = backChipMode();
   const secSel = document.getElementById('settingBackChipSeconds');
   // Eine nicht in der Liste vorhandene (z. B. importierte) Dauer wird als eigene Option ergänzt
