@@ -420,11 +420,10 @@ input[type=file] { display: none; }
   </div>
 </div>
 
-<div class="modal-backdrop" id="durationModal" onclick="handleDurationBackdropClick(event)">
+<div class="modal-backdrop" id="durationModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="durationModalTitle">Dauer</div>
-      <button class="modal-close" onclick="closeDurationModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="duration-cols">
@@ -445,7 +444,7 @@ input[type=file] { display: none; }
       <div class="duration-preview" id="durationModalPreview"></div>
     </div>
     <div class="modal-footer">
-      <button class="form-btn form-btn-cancel" id="durationModalReset" onclick="resetDurationModal()">Zurücksetzen</button>
+      <button class="form-btn form-btn-cancel" id="durationModalReset" onclick="durationModalLeftAction()">Zurücksetzen</button>
       <button class="form-btn form-btn-save" id="durationModalSave" onclick="confirmDurationModal()">Fertig</button>
     </div>
   </div>
@@ -2242,7 +2241,11 @@ function paintDurationModal(shown, suggestMode, val) {
     ? `Vorschlag aus Start-/Endzeit (${formatDuration(shown)}) - noch nicht gespeichert`
     : (val > 0 ? `= ${formatDuration(val)}` : 'Keine Dauer eingetragen');
   const resetEl = document.getElementById('durationModalReset');
-  if (resetEl) resetEl.disabled = val <= 0;
+  if (resetEl) {
+    // Beim bloßen Vorschlag gibt es nichts zurückzusetzen -> der linke Button schließt dann nur
+    resetEl.textContent = suggestMode ? 'Schließen' : 'Zurücksetzen';
+    resetEl.disabled = !suggestMode && val <= 0;
+  }
   const saveEl = document.getElementById('durationModalSave');
   if (saveEl) saveEl.textContent = suggestMode ? 'Als Auftritt speichern' : 'Fertig';
 }
@@ -2382,8 +2385,17 @@ function closeDurationModal() {
   document.getElementById('durationModal').classList.remove('open');
   durationModalRid = null; durationModalSkey = null; durationModalSuggest = 0;
 }
-function handleDurationBackdropClick(e) {
-  if (e.target.id === 'durationModal') closeDurationModal();
+// Der Dauer-Dialog hat bewusst weder ein ✕ noch schließt ein Tipp auf den
+// Hintergrund: Änderungen werden hier (wie überall in der App) sofort gespeichert,
+// ein ✕ würde aber ein Verwerfen suggerieren. Verlassen geht nur über die beiden
+// Buttons - links "Zurücksetzen" (entfernt die Dauer) bzw. beim bloßen Vorschlag
+// "Schließen" (verwirft nichts, speichert nichts), rechts "Fertig" bzw.
+// "Als Auftritt speichern".
+function durationModalLeftAction() {
+  if (durationModalSkey === null) return;
+  const noStored = !(showDurations[durationModalSkey] > 0);
+  if (noStored && durationModalSuggest > 0) closeDurationModal();   // nur Vorschlag: einfach schließen
+  else resetDurationModal();
 }
 // Hauptbutton des Modals: im Vorschlags-Zustand speichert er den Vorschlag
 // als echte Dauer (= Auftritt zählt), sonst schließt er nur.

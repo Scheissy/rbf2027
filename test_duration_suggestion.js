@@ -54,16 +54,16 @@ const { loadApp, createChecker } = require('./test-helpers');
   t.check('Modal zeigt den Vorschlag (45) im Feld.', input().value === '45');
   t.check('Feld ist als Vorschlag gedimmt markiert.', input().classList.contains('duration-input-suggest'));
   t.check('Hauptbutton heißt "Als Auftritt speichern".', save().textContent === 'Als Auftritt speichern', save().textContent);
-  t.check('Zurücksetzen ist deaktiviert (es gibt nichts Gespeichertes).', reset().disabled === true);
+  t.check('Im Vorschlags-Zustand heißt der linke Button "Schließen" und ist aktiv (es gibt nichts zurückzusetzen).', reset().textContent === 'Schließen' && reset().disabled === false, reset().textContent);
   t.check('Modal-Vorschau nennt den Vorschlag.', d.getElementById('durationModalPreview').textContent.includes('Vorschlag'));
 
   // 4) Schließen ohne Speichern darf nichts speichern
-  d.querySelector('#durationModal .modal-close').click();
-  t.check('✕ speichert den Vorschlag NICHT (Button bleibt "+ Eintragen").', stored()[skey] === undefined && btn().textContent === '+ Eintragen');
+  t.check('Kein ✕ im Dialog; Verlassen nur über die Buttons.', !d.querySelector('#durationModal .modal-close'));
+  reset().click();
+  t.check('"Schließen" verlässt den Dialog und speichert den Vorschlag NICHT (Button bleibt "+ Eintragen").', !modal().classList.contains('open') && stored()[skey] === undefined && btn().textContent === '+ Eintragen');
   btn().click();
   modal().dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  t.check('Klick auf den Hintergrund speichert den Vorschlag NICHT.', stored()[skey] === undefined);
-  btn().click();
+  t.check('Klick auf den Hintergrund tut nichts: Dialog bleibt offen, Vorschlag nicht gespeichert.', modal().classList.contains('open') && stored()[skey] === undefined);
   fire(input(), 'change');  // change ohne Änderung des Vorschlagswerts
   t.check('Unveränderter Vorschlag im Feld wird auch bei "change" nicht gespeichert.', stored()[skey] === undefined && input().classList.contains('duration-input-suggest'));
   w.closeDurationModal();

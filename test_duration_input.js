@@ -110,10 +110,10 @@ const { loadApp, createChecker } = require('./test-helpers');
   btn().click();
   t.check('Modal öffnet erneut mit dem gespeicherten Wert.', modal().classList.contains('open') && input().value === '25');
   modal().dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  t.check('Klick auf den Hintergrund schließt das Modal, Wert bleibt.', !modal().classList.contains('open') && dur()[skey] === 25);
-  btn().click();
-  d.querySelector('#durationModal .modal-close').click();
-  t.check('✕ schließt das Modal.', !modal().classList.contains('open'));
+  t.check('Klick auf den Hintergrund schließt das Modal NICHT (Verlassen nur über die Buttons), Wert bleibt.', modal().classList.contains('open') && dur()[skey] === 25);
+  t.check('Der Dialog hat kein ✕ mehr (kein Verwerfen-Eindruck bei sofort gespeicherten Änderungen).', !d.querySelector('#durationModal .modal-close') && !/✕/.test(d.querySelector('#durationModal .modal-header').textContent));
+  d.querySelector('#durationModal .form-btn-save').click();
+  t.check('"Fertig" schließt das Modal, Wert bleibt gespeichert.', !modal().classList.contains('open') && dur()[skey] === 25);
 
   // 8) Gesamtzeit + Filter "Nur mit Dauer".
   btn().click();
