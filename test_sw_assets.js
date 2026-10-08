@@ -14,6 +14,7 @@ const { createChecker } = require('./test-helpers');
   t.check('sw.js ist syntaktisch gültig.', parses);
   t.check('rbf-walk.js steht in der ASSETS-Liste (wird bei der Installation vorab gecacht).', /const ASSETS = \[[^\]]*'\.\/rbf-walk\.js'/.test(code));
   t.check('rbf-walk.js wird wie rbf-data.js Network-First behandelt (isDataFile).', /isDataFile\s*=[^;]*rbf-data\.js[^;]*rbf-walk\.js/.test(code));
+  t.check('App-Code wird wie index.html Network-First behandelt (isAppFile für css/ und js/).', /isAppFile\s*=/.test(code) && /if \(isHTML \|\| isDataFile \|\| isAppFile\)/.test(code));
   const cache = (code.match(/const CACHE = '([^']+)'/) || [])[1];
   t.check(`Cache-Name wurde hochgezählt (nicht mehr "rbf2026-v4"): "${cache}".`, !!cache && cache !== 'rbf2026-v4');
   t.finish();

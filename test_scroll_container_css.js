@@ -14,7 +14,7 @@ const { createChecker } = require('./test-helpers');
 // das innere Element zielt (z.B. renderKuenstlerPreservingAnchor()), greift
 // ins Leere. Genau das war die Ursache für "es wird trotz Fix immer noch
 // wild gesprungen".
-const css = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
+const css = fs.readFileSync(path.join(__dirname, 'css', 'app.css'), 'utf-8');
 
 (async () => {
   const t = createChecker();

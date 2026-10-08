@@ -42,6 +42,8 @@ const DEFAULT_INIT_DELAY_MS = 50;
  *     Testdaten-Datei, statt rbf-data.test.js.
  * @param {string} [opts.walkScript]   - Inhalt von rbf-walk.js (Fußweg-Matrix,
  *     `const WALK_DISTANCES = {...}`). Standard: leer = Datei nicht vorhanden.
+ * @param {function} [opts.transformHtml] - Verändert das fertig zusammengesetzte HTML vor dem
+ *     Laden (z. B. um ein Skript wegzulassen und eine unvollständig geladene App zu simulieren).
  * @param {number} [opts.initDelayMs]  - Wartezeit nach dem Laden (ms).
  * @param {boolean} [opts.trackErrors] - Wenn true, werden window-'error'-
  *     Events in .errors gesammelt (für Rauchtests, die auf "keine
@@ -62,14 +64,18 @@ async function loadApp(opts = {}) {
   // eingebetteten Skript als Ersetzungsmuster missverstanden.
   const htmlForTest = html
     .replace(/<script src="rbf-data\.js"><\/script>/, () => `<script>${dataScript}</script>`)
-    .replace(/<script src="rbf-walk\.js"><\/script>/, () => `<script>${walkScript}</script>`);
+    .replace(/<script src="rbf-walk\.js"><\/script>/, () => `<script>${walkScript}</script>`)
+    // CSS und App-Skripte (css/*.css, js/*.js) ebenfalls inline einsetzen (aus demselben Grund, dazu
+    // bleiben Tests wie d.querySelector('style') gültig). Reihenfolge der Skripte bleibt erhalten.
+    .replace(/<link rel="stylesheet" href="(css\/[^"]+)">/g, (m, f) => `<style>${fs.readFileSync(path.join(__dirname, f), 'utf-8')}</style>`)
+    .replace(/<script src="(js\/[^"]+)"><\/script>/g, (m, f) => `<script>${fs.readFileSync(path.join(__dirname, f), 'utf-8')}</script>`);
 
   const errors = [];
   const vc = new VirtualConsole();
   vc.forwardTo(console);
   vc.on('jsdomError', e => errors.push(`jsdomError: ${e.message}`));
 
-  const dom = new JSDOM(htmlForTest, {
+  const dom = new JSDOM(opts.transformHtml ? opts.transformHtml(htmlForTest) : htmlForTest, {
     url: 'https://scheissy.github.io/rbf2026/',
     runScripts: 'dangerously',
     resources: 'usable',

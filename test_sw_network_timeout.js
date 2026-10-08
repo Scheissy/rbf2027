@@ -77,6 +77,25 @@ function hangingFetch() { return new Promise(() => {}); }
       !!res && res._body === 'ALTE-DATEN');
   }
 
+  // ── 2b) App-Code (js/*.js, css/app.css) wird wie index.html Network-First behandelt:
+  // hängendes Netz -> Cache-Stand zeitnah, funktionierendes Netz -> frisch (kein Mischen alter/neuer Dateien).
+  {
+    const { fetchHandler, cacheStore } = loadSW(hangingFetch);
+    cacheStore.set('https://app.example/js/11-sprung.js', fakeResponse('https://app.example/js/11-sprung.js', true, 'ALTER-CODE'));
+    cacheStore.set('https://app.example/css/app.css', fakeResponse('https://app.example/css/app.css', true, 'ALTES-CSS'));
+    const rJs = await dispatch(fetchHandler, makeReq('https://app.example/js/11-sprung.js', ''));
+    const rCss = await dispatch(fetchHandler, makeReq('https://app.example/css/app.css', ''));
+    t.check('Auch js/*.js und css/app.css hängen bei totem Netz nicht - der Cache-Stand kommt zeitnah.', !!rJs && rJs._body === 'ALTER-CODE' && !!rCss && rCss._body === 'ALTES-CSS');
+  }
+  {
+    let calls = 0;
+    const fetchImpl = async () => { calls++; return fakeResponse('https://app.example/js/11-sprung.js', true, 'NEUER-CODE'); };
+    const { fetchHandler, cacheStore } = loadSW(fetchImpl);
+    cacheStore.set('https://app.example/js/11-sprung.js', fakeResponse('https://app.example/js/11-sprung.js', true, 'ALTER-CODE'));
+    const res = await dispatch(fetchHandler, makeReq('https://app.example/js/11-sprung.js', ''));
+    t.check('Bei funktionierendem Netz kommt js-Code frisch (Network-First), nicht aus dem Cache.', res._body === 'NEUER-CODE' && calls === 1);
+  }
+
   // ── 3) Funktionierendes Netz liefert weiterhin die frische Antwort
   // (kein unnötiger Umweg über den Cache, wenn das Netz eigentlich geht). ──
   {

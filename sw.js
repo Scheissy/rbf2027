@@ -1,5 +1,31 @@
-const CACHE = 'rbf2027-v1';
-const ASSETS = ['./index.html', './rbf-data.js', './rbf-walk.js', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'rbf2027-v2';
+// Die App besteht aus index.html + css/app.css + den Skripten js/*.js (Reihenfolge wie in
+// index.html). Jede neue Datei hier eintragen - test_split_files.js prüft das.
+const ASSETS = [
+  './index.html',
+  './css/app.css',
+  './js/01-data.js',
+  './js/02-storage.js',
+  './js/03-auswertung.js',
+  './js/04-wegstrecke.js',
+  './js/05-filter.js',
+  './js/06-bewertung.js',
+  './js/07-dauer.js',
+  './js/08-zeilenaktionen.js',
+  './js/09-kuenstler.js',
+  './js/10-programm.js',
+  './js/11-sprung.js',
+  './js/12-filtermodals.js',
+  './js/13-install.js',
+  './js/14-programmliste.js',
+  './js/15-export.js',
+  './js/99-main.js',
+  './rbf-data.js',
+  './rbf-walk.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
+];
 // Wie lange auf das Netz gewartet wird, bevor auf den Cache zurückgefallen
 // wird (siehe fetchWithTimeout unten) - siehe dortiger Kommentar zur Begründung.
 const NETWORK_TIMEOUT_MS = 4000;
@@ -60,8 +86,11 @@ self.addEventListener('fetch', e => {
   // rbf-walk.js (vorberechnete Fußweg-Matrix, optional) wird zusammen mit den
   // Locations-Daten aktualisiert und deshalb genauso behandelt.
   const isDataFile = req.url.endsWith('/rbf-data.js') || req.url.endsWith('/rbf-walk.js');
+  // App-Code (css/*.css, js/*.js) gehört zur App-Shell wie index.html: ebenfalls Network-First,
+  // damit nach einem Update nie alter und neuer Code gemischt aus dem Cache kommt.
+  const isAppFile = /\/(?:js|css)\/[^/?#]+\.(?:js|css)(?:[?#].*)?$/.test(req.url);
 
-  if (isHTML || isDataFile) {
+  if (isHTML || isDataFile || isAppFile) {
     // App-Shell + Datendatei: zuerst das Netz fragen, damit Updates schnell
     // ankommen - aber höchstens NETWORK_TIMEOUT_MS lang warten, danach sofort
     // auf den Cache zurückfallen (siehe fetchWithTimeout oben). Nur
