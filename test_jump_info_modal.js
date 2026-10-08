@@ -14,8 +14,8 @@ const { loadApp, createChecker } = require('./test-helpers');
   t.check('Info-Modal ist standardmäßig geschlossen.', !modal.classList.contains('open'));
 
   // 2) Öffnen über die Funktion (entspricht Klick auf das Icon)
-  w.openJumpToNowInfoModal();
-  t.check('openJumpToNowInfoModal() öffnet das Modal.', modal.classList.contains('open'));
+  w.openModal('jumpToNowInfoModal');
+  t.check('openModal() öffnet das Modal.', modal.classList.contains('open'));
 
   // 3) Inhalt erwähnt beide Stufen (1. Tippen / weiteres Tippen) sowie die
   //    beiden Ausnahmen (Ausgeblendete anzeigen, Event-Sichtbarkeit)
@@ -27,20 +27,20 @@ const { loadApp, createChecker } = require('./test-helpers');
     mentionsStage1 && mentionsStage2 && mentionsExceptions, { mentionsStage1, mentionsStage2, mentionsExceptions });
 
   // 4) Schließen per Funktion
-  w.closeJumpToNowInfoModal();
-  t.check('closeJumpToNowInfoModal() schließt das Modal.', !modal.classList.contains('open'));
+  w.closeModal('jumpToNowInfoModal');
+  t.check('closeModal() schließt das Modal.', !modal.classList.contains('open'));
 
   // 5) Backdrop-Klick schließt (Klick direkt auf den Backdrop, nicht auf die Karte)
-  w.openJumpToNowInfoModal();
-  w.handleJumpToNowInfoBackdropClick({ target: modal });
+  w.openModal('jumpToNowInfoModal');
+  w.modalBackdropClick({ target: modal });
   t.check('Klick auf den Backdrop schließt das Modal.', !modal.classList.contains('open'));
 
   // 6) Klick auf die Karte selbst (nicht den Backdrop) darf NICHT schließen
-  w.openJumpToNowInfoModal();
+  w.openModal('jumpToNowInfoModal');
   const card = modal.querySelector('.modal');
-  w.handleJumpToNowInfoBackdropClick({ target: card });
+  w.modalBackdropClick({ target: card });
   t.check('Klick auf die Karte selbst schließt das Modal nicht (kein versehentliches Schließen).', modal.classList.contains('open'));
-  w.closeJumpToNowInfoModal();
+  w.closeModal('jumpToNowInfoModal');
 
   // 7) Das ⓘ-Icon sitzt sichtbar direkt neben dem "Jetzt"-Button (gleicher
   //    Elternknoten), nicht irgendwo lose im Filterbereich.

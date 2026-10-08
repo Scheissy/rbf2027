@@ -24,24 +24,24 @@ const { loadApp, createChecker } = require('./test-helpers');
   const bodyText = modal.textContent;
   t.check('Modal erklärt "besucht" (Dauer/Bewertung), Strecke und die Bewertungsbasis - dieselben Infos wie zuvor die Box.',
     bodyText.includes('Dauer') && bodyText.includes('bewertet') && bodyText.includes('Strecke') && bodyText.includes('Auftritts-Bewertung'), bodyText);
-  w.closeAuswertungInfoModal();
-  t.check('closeAuswertungInfoModal() schließt das Modal wieder.', !modal.classList.contains('open'));
+  w.closeModal('auswertungInfoModal');
+  t.check('closeModal() schließt das Modal wieder.', !modal.classList.contains('open'));
 
   // ── 3) Öffnen per Icon-Klick (Backdrop-Verhalten wie bei den anderen Info-Modals) ──
   icon.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   t.check('Klick auf das ⓘ-Icon öffnet das Modal.', modal.classList.contains('open'));
-  w.handleAuswertungInfoBackdropClick({ target: modal });
+  w.modalBackdropClick({ target: modal });
   t.check('Klick auf den Backdrop schließt das Modal.', !modal.classList.contains('open'));
   w.openAuswertungInfoModal();
-  w.handleAuswertungInfoBackdropClick({ target: modal.querySelector('.modal') });
+  w.modalBackdropClick({ target: modal.querySelector('.modal') });
   t.check('Klick auf die Karte selbst schließt das Modal NICHT.', modal.classList.contains('open'));
-  w.closeAuswertungInfoModal();
+  w.closeModal('auswertungInfoModal');
 
   // ── 4) Der Fußweg-Hinweis wird je nach vorhandener Matrix korrekt befüllt ──
   w.openAuswertungInfoModal();
   t.check('Ohne rbf-walk.js nennt das Modal die Luftlinien-Näherung, keine OSM-Quellenangabe.',
     d.getElementById('auswertungInfoWalkNote').textContent.includes('Luftlinie') && !d.getElementById('auswertungInfoWalkNote').textContent.includes('OpenStreetMap'));
-  w.closeAuswertungInfoModal();
+  w.closeModal('auswertungInfoModal');
 
   // ── 5) Neu-Rendern (Sortierung wechseln) hält Header/Modal intakt ──────
   w.setAuswertungSort('duration');
@@ -49,7 +49,7 @@ const { loadApp, createChecker } = require('./test-helpers');
     !!d.getElementById('auswertungContent').querySelector('.ausw-header-title'));
   w.openAuswertungInfoModal();
   t.check('Das Modal selbst bleibt beim Neu-Rendern des Contents unverändert erreichbar.', d.getElementById('auswertungInfoModal').classList.contains('open'));
-  w.closeAuswertungInfoModal();
+  w.closeModal('auswertungInfoModal');
   w.setAuswertungSort('count');
 
   t.check('Keine JS-Fehler während des gesamten Ablaufs.', errors.length === 0, errors);

@@ -27,16 +27,16 @@ const { loadApp, createChecker } = require('./test-helpers');
     mentionsManage && mentionsPersistent && mentionsResetSurvives, { mentionsManage, mentionsPersistent, mentionsResetSurvives });
 
   // 4) Schließen per Funktion
-  w.closeLocFilterInfoModal();
-  t.check('closeLocFilterInfoModal() schließt das Modal.', !modal.classList.contains('open'));
+  w.closeModal('locFilterInfoModal');
+  t.check('closeModal() schließt das Modal.', !modal.classList.contains('open'));
 
   // 5) Backdrop-Klick schließt, Klick auf die Karte selbst nicht
   w.openLocFilterInfoModal();
-  w.handleLocFilterInfoBackdropClick({ target: modal });
+  w.modalBackdropClick({ target: modal });
   t.check('Klick auf den Backdrop schließt das Modal.', !modal.classList.contains('open'));
   w.openLocFilterInfoModal();
   const card = modal.querySelector('.modal');
-  w.handleLocFilterInfoBackdropClick({ target: card });
+  w.modalBackdropClick({ target: card });
   t.check('Klick auf die Karte selbst schließt das Modal nicht.', modal.classList.contains('open'));
 
   // 6) Der "Locations verwalten öffnen"-Button im Modal schließt das Modal,
@@ -61,7 +61,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   const selectionList = d.getElementById('locFilterInfoSelectionList');
   w.openLocFilterInfoModal();
   t.check('Ohne aktive Location-Auswahl bleibt der "Aktuell ausgewählt"-Abschnitt unsichtbar.', selectionSection.style.display === 'none');
-  w.closeLocFilterInfoModal();
+  w.closeModal('locFilterInfoModal');
 
   // 9) Mit aktiver Auswahl (z.B. zwei Locations) erscheint der Abschnitt und
   // listet genau die ausgewählten Locations auf.
@@ -74,12 +74,12 @@ const { loadApp, createChecker } = require('./test-helpers');
     { display: selectionSection.style.display, listedNames });
 
   // 10) Auswahl wieder aufheben -> Abschnitt verschwindet beim nächsten Öffnen wieder.
-  w.closeLocFilterInfoModal();
+  w.closeModal('locFilterInfoModal');
   w.toggleLocSelection('Docks');
   w.toggleLocSelection('Molotow');
   w.openLocFilterInfoModal();
   t.check('Nach Aufheben der Auswahl verschwindet der Abschnitt beim nächsten Öffnen wieder.', selectionSection.style.display === 'none');
-  w.closeLocFilterInfoModal();
+  w.closeModal('locFilterInfoModal');
 
   t.finish();
 })();

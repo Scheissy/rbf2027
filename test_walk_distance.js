@@ -97,7 +97,7 @@ async function loadWith(walkScript) {
     const modalText = d.getElementById('auswertungInfoModal').textContent;
     t.check('Info-Modal erwähnt die Luftlinien-Näherung, keine OSM-Quellenangabe.',
       modalText.includes('Luftlinie') && !modalText.includes('OpenStreetMap'), modalText);
-    w.closeAuswertungInfoModal();
+    w.closeModal('auswertungInfoModal');
   }
 
   // ── Mit vollständiger Fußweg-Matrix ────────────────────────────────────
@@ -109,7 +109,7 @@ async function loadWith(walkScript) {
     t.check('Mit Matrix: Fr = 100 + 700 + 700 = 1,5 km, Label "Fußweg".', walkVal(d) === '1,5 km' && walkLabel(d) === 'Fußweg' && walkKpi(d).getAttribute('data-walk-kind') === 'walk', { val: walkVal(d), label: walkLabel(d) });
     w.openAuswertungInfoModal();
     t.check('Mit Matrix zeigt das Info-Modal die OpenStreetMap-Quellenangabe.', d.getElementById('auswertungInfoModal').textContent.includes('OpenStreetMap'));
-    w.closeAuswertungInfoModal();
+    w.closeModal('auswertungInfoModal');
     const m = w.walkMeters('Docks', 'Prinzenbar');
     t.check('walkMeters nutzt die Matrix (exact=true) statt der Luftlinie.', m.meters === 100 && m.exact === true, m);
     t.check('Alias-Locations mit gleichem Matrix-Index = 0 m (exakt).', JSON.stringify(w.walkMeters('Molotow', 'Molotow Top Ten Bar')) === '{"meters":0,"exact":true}');

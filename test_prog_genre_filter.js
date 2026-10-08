@@ -43,7 +43,7 @@ const { loadApp, reloadWithState, createChecker, namesInList: namesInListShared 
   // 4) Genre auswählen ("Techno", passt zu "Stahl & Beton") -> Liste filtert
   // entsprechend, andere Künstler verschwinden.
   w.toggleProgGenreSelection('Techno');
-  w.closeProgGenreModal();
+  w.closeModal('progGenreModal');
   const namesAfterFilter = namesInList();
   const hasStahlBeton = namesAfterFilter.some(n => n.includes('Stahl & Beton'));
   const hasNovaFrequenz = namesAfterFilter.some(n => n.includes('Nova Frequenz'));

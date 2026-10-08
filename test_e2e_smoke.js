@@ -84,13 +84,13 @@ const { loadApp, createChecker } = require('./test-helpers');
   });
 
   step('"Jetzt"-Info-Modal öffnen und schließen', () => {
-    w.openJumpToNowInfoModal();
-    w.closeJumpToNowInfoModal();
+    w.openModal('jumpToNowInfoModal');
+    w.closeModal('jumpToNowInfoModal');
   });
 
   step('Location-Info-Modal öffnen und schließen', () => {
     w.openLocFilterInfoModal();
-    w.closeLocFilterInfoModal();
+    w.closeModal('locFilterInfoModal');
   });
 
   step('Location dauerhaft ausblenden und wieder zurücksetzen', () => {
@@ -115,7 +115,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   step('In den Auswertung-Tab wechseln, Info-Modal öffnen und schließen', () => {
     w.switchTab('auswertung');
     w.openAuswertungInfoModal();
-    w.closeAuswertungInfoModal();
+    w.closeModal('auswertungInfoModal');
   });
 
   step('Auswertung: alle drei Sortierungen durchschalten, Summe/Durchschnitt bei Dauer testen', () => {

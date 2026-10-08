@@ -27,25 +27,25 @@
 </div>
 
 <!-- GENRE FILTER MODAL -->
-<div class="modal-backdrop" id="genreModal" onclick="handleGenreBackdropClick(event)">
+<div class="modal-backdrop" id="genreModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Genres filtern</div>
-      <button class="modal-close" onclick="closeGenreModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('genreModal')">✕</button>
     </div>
     <div class="modal-body" id="genreModalList" style="gap:0"></div>
     <div class="modal-footer">
       <button class="form-btn form-btn-cancel" onclick="resetGenreFilter()">Zurücksetzen</button>
-      <button class="form-btn form-btn-save" onclick="closeGenreModal()">Fertig</button>
+      <button class="form-btn form-btn-save" onclick="closeModal('genreModal')">Fertig</button>
     </div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="commentModal" onclick="handleCommentBackdropClick(event)">
+<div class="modal-backdrop" id="commentModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="commentModalTitle">Kommentar</div>
-      <button class="modal-close" onclick="closeCommentModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('commentModal')">✕</button>
     </div>
     <div class="modal-body">
       <div id="commentModalText" style="font-size:14px;line-height:1.5;white-space:pre-wrap"></div>
@@ -83,11 +83,11 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="jumpToNowInfoModal" onclick="handleJumpToNowInfoBackdropClick(event)">
+<div class="modal-backdrop" id="jumpToNowInfoModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">🕐 Wie funktioniert „Jetzt“?</div>
-      <button class="modal-close" onclick="closeJumpToNowInfoModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('jumpToNowInfoModal')">✕</button>
     </div>
     <div class="modal-body" style="font-size:14px;line-height:1.5">
       <p style="margin:0 0 10px">Springt auf den aktuellen Festivaltag und die aktuelle Uhrzeit.</p>
@@ -98,11 +98,11 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="locFilterInfoModal" onclick="handleLocFilterInfoBackdropClick(event)">
+<div class="modal-backdrop" id="locFilterInfoModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">📍 Warum fehlt eine Location?</div>
-      <button class="modal-close" onclick="closeLocFilterInfoModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('locFilterInfoModal')">✕</button>
     </div>
     <div class="modal-body" style="font-size:14px;line-height:1.5">
       <div id="locFilterInfoSelection" style="display:none;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
@@ -112,54 +112,54 @@
       <p style="margin:0 0 10px">Über <b>„Locations verwalten"</b> in den Einstellungen lassen sich einzelne Spielstätten dauerhaft ausblenden.</p>
       <p style="margin:0 0 10px">Das ist eine <b>Dauereinstellung</b>, kein normaler Filter: eine dort ausgeblendete Location bleibt auch dann unsichtbar, wenn „Filter zurücksetzen" getippt oder „Ausgeblendete Künstler/Events mit anzeigen" aktiviert wird.</p>
       <p style="margin:0 0 12px">Fehlt also eine Location trotz zurückgesetzter Filter, lohnt ein Blick dorthin.</p>
-      <button type="button" class="prog-quick-btn" style="width:100%" onclick="closeLocFilterInfoModal();switchTab('io');openLocManageModal()">📍 Locations verwalten öffnen</button>
+      <button type="button" class="prog-quick-btn" style="width:100%" onclick="closeModal('locFilterInfoModal');switchTab('io');openLocManageModal()">📍 Locations verwalten öffnen</button>
     </div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="soundRefModal" onclick="handleSoundRefBackdropClick(event)">
+<div class="modal-backdrop" id="soundRefModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="soundRefModalTitle">Soundreferenz</div>
-      <button class="modal-close" onclick="closeSoundRefModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('soundRefModal')">✕</button>
     </div>
     <div class="modal-body" id="soundRefModalBody" style="display:flex;flex-direction:column;gap:14px"></div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="locModal" onclick="handleLocBackdropClick(event)">
+<div class="modal-backdrop" id="locModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Locations filtern</div>
-      <button class="modal-close" onclick="closeLocModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('locModal')">✕</button>
     </div>
     <div class="modal-body" id="locModalList" style="gap:0"></div>
     <div class="modal-footer">
       <button class="form-btn form-btn-cancel" onclick="resetLocFilter()">Zurücksetzen</button>
-      <button class="form-btn form-btn-save" onclick="closeLocModal()">Fertig</button>
+      <button class="form-btn form-btn-save" onclick="closeModal('locModal')">Fertig</button>
     </div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="progGenreModal" onclick="handleProgGenreBackdropClick(event)">
+<div class="modal-backdrop" id="progGenreModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Genres filtern</div>
-      <button class="modal-close" onclick="closeProgGenreModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('progGenreModal')">✕</button>
     </div>
     <div class="modal-body" id="progGenreModalList" style="gap:0"></div>
     <div class="modal-footer">
       <button class="form-btn form-btn-cancel" onclick="resetProgGenreFilter()">Zurücksetzen</button>
-      <button class="form-btn form-btn-save" onclick="closeProgGenreModal()">Fertig</button>
+      <button class="form-btn form-btn-save" onclick="closeModal('progGenreModal')">Fertig</button>
     </div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="locManageModal" onclick="handleLocManageBackdropClick(event)">
+<div class="modal-backdrop" id="locManageModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Locations verwalten</div>
-      <button class="modal-close" onclick="closeLocManageModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('locManageModal')">✕</button>
     </div>
     <div style="padding:0 20px 10px;font-size:12px;color:var(--text2);line-height:1.5">
       Abgewählte Locations werden komplett aus der Programm-Übersicht ausgeblendet (auch ihre Auftritte). Die Künstler-Übersicht bleibt davon unberührt.
@@ -167,16 +167,16 @@
     <div class="modal-body" id="locManageModalList" style="gap:0"></div>
     <div class="modal-footer">
       <button class="form-btn form-btn-cancel" onclick="resetLocManage()">Alle anzeigen</button>
-      <button class="form-btn form-btn-save" onclick="closeLocManageModal()">Fertig</button>
+      <button class="form-btn form-btn-save" onclick="closeModal('locManageModal')">Fertig</button>
     </div>
   </div>
 </div>
 
-<div class="modal-backdrop" id="installModal" onclick="handleInstallBackdropClick(event)">
+<div class="modal-backdrop" id="installModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">App installieren</div>
-      <button class="modal-close" onclick="closeInstallModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('installModal')">✕</button>
     </div>
     <div class="install-tabs" id="installTabs"></div>
     <div class="modal-body" id="installModalBody" style="padding-top:4px"></div>
@@ -232,7 +232,7 @@
       <button class="prog-quick-btn" onclick="resetProgFilters()">↺ Filter zurücksetzen</button>
       <div style="flex:1;display:flex;gap:4px;align-items:center">
         <button class="prog-quick-btn" style="flex:1" onclick="jumpToNow()">🕐 Jetzt</button>
-        <button type="button" class="info-icon-btn" onclick="event.stopPropagation();openJumpToNowInfoModal()" title="Wie funktioniert „Jetzt“?" aria-label="Erklärung zum Jetzt-Button anzeigen">ⓘ</button>
+        <button type="button" class="info-icon-btn" onclick="event.stopPropagation();openModal('jumpToNowInfoModal')" title="Wie funktioniert „Jetzt“?" aria-label="Erklärung zum Jetzt-Button anzeigen">ⓘ</button>
       </div>
     </div>
     <div class="prog-row2">
@@ -456,11 +456,11 @@
 
 
 
-<div class="modal-backdrop" id="auswertungInfoModal" onclick="handleAuswertungInfoBackdropClick(event)">
+<div class="modal-backdrop" id="auswertungInfoModal" onclick="modalBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">📊 Wie funktioniert die Auswertung?</div>
-      <button class="modal-close" onclick="closeAuswertungInfoModal()">✕</button>
+      <button class="modal-close" onclick="closeModal('auswertungInfoModal')">✕</button>
     </div>
     <div class="modal-body" style="font-size:14px;line-height:1.5">
       <p style="margin:0 0 10px"><b>Wann zählt ein Auftritt als besucht?</b><br>Sobald eine <b>Dauer</b> eingetragen <i>oder</i> der Auftritt <b>bewertet</b> wurde - eines von beiden genügt.</p>
