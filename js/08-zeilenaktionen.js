@@ -102,13 +102,7 @@ function openCommentModal(name) {
   if (!d || !d.kommentar) return;
   document.getElementById('commentModalTitle').textContent = name;
   document.getElementById('commentModalText').textContent = d.kommentar;
-  document.getElementById('commentModal').classList.add('open');
-}
-function closeCommentModal() {
-  document.getElementById('commentModal').classList.remove('open');
-}
-function handleCommentBackdropClick(e) {
-  if (e.target.id === 'commentModal') closeCommentModal();
+  openModal('commentModal');
 }
 
 // ── SOUNDREFERENZEN ──────────────────────────────────────────────────────────
@@ -144,13 +138,7 @@ function openSoundRefModal(name) {
       <div class="soundref-name">🔊 Klingt wie: ${(r.referenz || []).join(' / ')}</div>
       <div class="soundref-kategorie">${r.kategorie || ''}</div>
     </div>`).join('');
-  document.getElementById('soundRefModal').classList.add('open');
-}
-function closeSoundRefModal() {
-  document.getElementById('soundRefModal').classList.remove('open');
-}
-function handleSoundRefBackdropClick(e) {
-  if (e.target.id === 'soundRefModal') closeSoundRefModal();
+  openModal('soundRefModal');
 }
 
 // Erzeugt die Gesehen-Buttons (wiederverwendet in Künstler-Ansicht)

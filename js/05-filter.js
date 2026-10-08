@@ -2,6 +2,20 @@
 // Teil der App: klassisches Skript im gemeinsamen globalen Bereich (Ladereihenfolge siehe index.html).
 (window.RBF_PARTS = window.RBF_PARTS || []).push('05-filter');
 
+// ── MODALS (gemeinsame Mechanik) ────────────────────────────────────────────
+// Alle Bottom-Sheets (".modal-backdrop") öffnen/schließen über dieselben Funktionen
+// statt je Modal eigener Wrapper. Im Markup: Hintergrund mit
+// onclick="modalBackdropClick(event)", Schließen-Button mit onclick="closeModal('<id>')".
+// Ein Tipp auf den abgedunkelten Hintergrund (nicht auf die Karte darin) schließt das
+// Modal. Ausnahme: der Dauer-Dialog (durationModal) hat bewusst keinen Hintergrund-Tipp
+// und eigene Schließ-Logik (siehe js/07-dauer.js).
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function modalBackdropClick(e) {
+  const el = e.target;
+  if (el && el.classList && el.classList.contains('modal-backdrop')) closeModal(el.id);
+}
+
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function toast(msg, ok = true) {
   const t = document.getElementById('toast');
@@ -159,7 +173,7 @@ function updateTagFilters() {
 // wortgleichen Funktionen (nur Optionsliste/Auswahl-Set/DOM-Ids unterschieden
 // sich) - hier auf eine gemeinsame Implementierung zurückgeführt. Erzeugt für
 // eine Konfiguration die komplette render/toggle/removeChip/reset/
-// updateChips/open/close/handleBackdrop-Logik. Die global aufrufbaren
+// updateChips/open-Logik (Schließen und Hintergrund-Tipp: gemeinsame Modal-Mechanik oben). Die global aufrufbaren
 // Funktionsnamen (aus den generierten onclick-Attributen heraus referenziert)
 // bleiben als dünne Wrapper bestehen, damit sich am Verhalten nichts ändert.
 function makeMultiSelectFilter(opts) {
@@ -209,15 +223,9 @@ function makeMultiSelectFilter(opts) {
   }
   function open() {
     render();
-    document.getElementById(modalId).classList.add('open');
+    openModal(modalId);
   }
-  function close() {
-    document.getElementById(modalId).classList.remove('open');
-  }
-  function handleBackdrop(e) {
-    if (e.target.id === modalId) close();
-  }
-  return { render, toggle, removeChip, reset, updateChips, open, close, handleBackdrop };
+  return { render, toggle, removeChip, reset, updateChips, open };
 }
 
 // ── GENRE-MEHRFACHFILTER ────────────────────────────────────────────────────
@@ -232,8 +240,6 @@ const genreModalApi = makeMultiSelectFilter({
   onChange: () => renderKuenstlerPreservingAnchor()
 });
 function openGenreModal() { genreModalApi.open(); }
-function closeGenreModal() { genreModalApi.close(); }
-function handleGenreBackdropClick(e) { genreModalApi.handleBackdrop(e); }
 function renderGenreModalList() { genreModalApi.render(); }
 function toggleGenreSelection(g) { genreModalApi.toggle(g); }
 function removeGenreChip(g) { genreModalApi.removeChip(g); }

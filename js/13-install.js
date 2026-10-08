@@ -70,12 +70,6 @@ function guessInstallPlatform() {
 function openInstallModal() {
   currentInstallTab = guessInstallPlatform();
   renderInstallGuide();
-  document.getElementById('installModal').classList.add('open');
-}
-function closeInstallModal() {
-  document.getElementById('installModal').classList.remove('open');
-}
-function handleInstallBackdropClick(e) {
-  if (e.target.id === 'installModal') closeInstallModal();
+  openModal('installModal');
 }
 

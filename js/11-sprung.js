@@ -462,17 +462,8 @@ function jumpToNow() {
 // (siehe jumpToNow() oben) - bewusst als eigenes, jederzeit erreichbares
 // ⓘ-Icon statt Hover-Tooltip, da Tooltips auf Touch-Geräten nicht
 // zuverlässig funktionieren (gleiches Muster wie beim Kommentar-Icon).
-function openJumpToNowInfoModal() {
-  document.getElementById('jumpToNowInfoModal').classList.add('open');
-}
-function closeJumpToNowInfoModal() {
-  document.getElementById('jumpToNowInfoModal').classList.remove('open');
-}
-function handleJumpToNowInfoBackdropClick(e) {
-  if (e.target.id === 'jumpToNowInfoModal') closeJumpToNowInfoModal();
-}
 
-// Bottom-Sheet analog zu openJumpToNowInfoModal(), aber für den Sonderfall
+// Bottom-Sheet analog zu openModal('jumpToNowInfoModal'), aber für den Sonderfall
 // "dauerhaft ausgeblendete Location über Locations verwalten" - erreichbar
 // direkt dort, wo eine fehlende Location tatsächlich auffällt (Location-
 // Filter-Button), statt beim inhaltlich verwandten, aber vom Auffindungsort
@@ -493,10 +484,7 @@ function openLocFilterInfoModal() {
       section.style.display = 'none';
     }
   }
-  document.getElementById('locFilterInfoModal').classList.add('open');
-}
-function closeLocFilterInfoModal() {
-  document.getElementById('locFilterInfoModal').classList.remove('open');
+  openModal('locFilterInfoModal');
 }
 function openAuswertungInfoModal() {
   // Der Fußweg-Hinweis hängt davon ab, ob rbf-walk.js geladen ist - deshalb
@@ -505,16 +493,7 @@ function openAuswertungInfoModal() {
   if (note) note.textContent = walkDataAvailable()
     ? 'Fußwege sind vorberechnet (© OpenStreetMap-Mitwirkende, Routing: OSRM).'
     : 'Ohne hinterlegte Fußweg-Daten wird die Luftlinie verwendet und als „Luftlinie“ gekennzeichnet.';
-  document.getElementById('auswertungInfoModal').classList.add('open');
-}
-function closeAuswertungInfoModal() {
-  document.getElementById('auswertungInfoModal').classList.remove('open');
-}
-function handleAuswertungInfoBackdropClick(e) {
-  if (e.target.id === 'auswertungInfoModal') closeAuswertungInfoModal();
-}
-function handleLocFilterInfoBackdropClick(e) {
-  if (e.target.id === 'locFilterInfoModal') closeLocFilterInfoModal();
+  openModal('auswertungInfoModal');
 }
 
 // Location-Filter zeigt nur Spielstätten, die im aktuell gewählten Zeitraum

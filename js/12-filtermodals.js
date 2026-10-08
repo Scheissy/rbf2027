@@ -19,8 +19,6 @@ function removeLocChip(l) { locModalApi.removeChip(l); }
 function resetLocFilter() { locModalApi.reset(); }
 function updateLocChips() { locModalApi.updateChips(); }
 function openLocModal() { locModalApi.open(); }
-function closeLocModal() { locModalApi.close(); }
-function handleLocBackdropClick(e) { locModalApi.handleBackdrop(e); }
 
 // ── GENRE-MEHRFACHFILTER (Programm-Übersicht) ───────────────────────────────
 // Nutzt dieselbe globale Genre-Liste (allGenreTags) wie der Künstler-Tab,
@@ -41,8 +39,6 @@ function removeProgGenreChip(g) { progGenreModalApi.removeChip(g); }
 function resetProgGenreFilter() { progGenreModalApi.reset(); }
 function updateProgGenreChips() { progGenreModalApi.updateChips(); }
 function openProgGenreModal() { progGenreModalApi.open(); }
-function closeProgGenreModal() { progGenreModalApi.close(); }
-function handleProgGenreBackdropClick(e) { progGenreModalApi.handleBackdrop(e); }
 
 // ── LOCATIONS VERWALTEN (Settings) ─────────────────────────────────────────────
 // Persistente, geräteweite Anzeige-Einstellung: welche Locations sollen in der
@@ -85,12 +81,6 @@ function resetLocManage() {
 }
 function openLocManageModal() {
   renderLocManageModalList();
-  document.getElementById('locManageModal').classList.add('open');
-}
-function closeLocManageModal() {
-  document.getElementById('locManageModal').classList.remove('open');
-}
-function handleLocManageBackdropClick(e) {
-  if (e.target.id === 'locManageModal') closeLocManageModal();
+  openModal('locManageModal');
 }
 
