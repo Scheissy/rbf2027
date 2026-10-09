@@ -1,0 +1,61 @@
+{
+ "tests": [
+  "test_modal_mechanics.js"
+ ],
+ "mutations": [
+  {
+   "name": "M1 Hintergrund-Tipp schließt auch bei Tipp auf die Karte",
+   "file": "js/05-filter.js",
+   "old": "if (el && el.classList && el.classList.contains('modal-backdrop')) closeModal(el.id);",
+   "new": "if (el) closeModal(el.id);"
+  },
+  {
+   "name": "M2 Hintergrund-Tipp schließt nie",
+   "file": "js/05-filter.js",
+   "old": "if (el && el.classList && el.classList.contains('modal-backdrop')) closeModal(el.id);",
+   "new": ""
+  },
+  {
+   "name": "M3 closeModal schließt nichts",
+   "file": "js/05-filter.js",
+   "old": "function closeModal(id) { document.getElementById(id).classList.remove('open'); }",
+   "new": "function closeModal(id) { }"
+  },
+  {
+   "name": "M4 openModal öffnet nichts",
+   "file": "js/05-filter.js",
+   "old": "function openModal(id) { document.getElementById(id).classList.add('open'); }",
+   "new": "function openModal(id) { }"
+  },
+  {
+   "name": "M5 Mehrfachfilter-Fabrik öffnet nicht über openModal",
+   "file": "js/05-filter.js",
+   "old": "    openModal(modalId);\n  }\n  return { render, toggle, removeChip, reset, updateChips, open };",
+   "new": "  }\n  return { render, toggle, removeChip, reset, updateChips, open };"
+  },
+  {
+   "name": "M6 Schließen-Button mit falscher Id (Copy-Paste)",
+   "file": "index.html",
+   "old": "onclick=\"closeModal('installModal')\"",
+   "new": "onclick=\"closeModal('locModal')\""
+  },
+  {
+   "name": "M7 Hintergrund-Handler fehlt bei einem Modal",
+   "file": "index.html",
+   "old": "<div class=\"modal-backdrop\" id=\"installModal\" onclick=\"modalBackdropClick(event)\">",
+   "new": "<div class=\"modal-backdrop\" id=\"installModal\">"
+  },
+  {
+   "name": "M8 Dauer-Dialog schließt per Hintergrund-Tipp",
+   "file": "index.html",
+   "old": "<div class=\"modal-backdrop\" id=\"durationModal\">",
+   "new": "<div class=\"modal-backdrop\" id=\"durationModal\" onclick=\"modalBackdropClick(event)\">"
+  },
+  {
+   "name": "M9 alter Wrapper kommt zurück",
+   "file": "js/12-filtermodals.js",
+   "old": "function openLocModal() { locModalApi.open(); }",
+   "new": "function openLocModal() { locModalApi.open(); }\nfunction closeLocModal() { closeModal('locModal'); }"
+  }
+ ]
+}

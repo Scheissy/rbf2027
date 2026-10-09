@@ -1,15 +1,14 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev, progRow: row, ridOf } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
   const setDays = days => d.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', days.includes(b.dataset.day)));
   const allDays = () => [...d.querySelectorAll('.day-btn')].map(b => b.dataset.day);
   const showAll = () => { w.switchTab('programm'); setDays(allDays()); d.getElementById('timeFrom').value = '08:00'; d.getElementById('timeTo').value = ''; w.renderProg(); };
-  const row = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  const ridOf = skey => row(skey).getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
   const marker = skey => row(skey).querySelector('.prog-right-col .prog-more-ind');
   // Die Detailansicht (und damit die Terminliste) wird erst beim Aufklappen gebaut:
   // terms() klappt die Zeile deshalb bei Bedarf auf (es ist immer nur eine offen).

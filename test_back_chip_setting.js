@@ -1,17 +1,14 @@
-const { loadApp, createChecker } = require('./test-helpers');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { chipVisible, ev, fire, sleep, viewVisible } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
-  const chipVisible = () => d.getElementById('jumpBackChip').style.display !== 'none';
   const modeSel = () => d.getElementById('settingBackChipMode');
   const secSel = () => d.getElementById('settingBackChipSeconds');
   const secRow = () => d.getElementById('rowBackChipSeconds');
-  const viewVisible = tab => !d.getElementById(`view-${tab}`).classList.contains('hidden');
-  const fire = (el, type) => el.dispatchEvent(new w.Event(type, { bubbles: true }));
   const setMode = v => { modeSel().value = v; fire(modeSel(), 'change'); };
   const setSecs = v => { secSel().value = String(v); fire(secSel(), 'change'); };
   // Die Auswahl bietet mindestens 5 s an; für schnelle Tests wird eine 1-s-Dauer direkt gesetzt
@@ -22,15 +19,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const scrollBy = (list, dy) => { list.scrollTop += dy; list.dispatchEvent(new w.Event('scroll')); };
 
   // Fake-Layout für den Bewegungs-Modus (jsdom hat keine Geometrie)
-  const lists = ['artistList', 'progList'].map(id => d.getElementById(id));
-  lists.forEach(l => { let st = 0; Object.defineProperty(l, 'scrollTop', { get: () => st, set: v => { st = v; }, configurable: true }); });
-  w.Element.prototype.getBoundingClientRect = function () {
-    const mk = (top, h) => ({ top, bottom: top + h, left: 0, right: 300, width: 300, height: h });
-    if (lists.includes(this)) return mk(0, 600);
-    const p = this.parentElement;
-    if (p && lists.includes(p)) return mk([...p.children].indexOf(this) * 100 - p.scrollTop, 100);
-    return mk(0, 0);
-  };
+  const lists = H.installFakeLayout();
 
   // ───────── 1) Standard + Oberfläche ─────────
   t.check('Standard: Modus "Nach Zeit ausblenden" mit 15 Sekunden.', ev('backChipMode()') === 'time' && ev('backChipSeconds()') === 15);

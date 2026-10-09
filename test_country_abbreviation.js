@@ -1,4 +1,4 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 // Eigene, kleine Testdatendatei NUR für diesen Test - bewusst mit vollen
 // deutschen Ländernamen (nicht den sonst üblichen Kürzeln in
@@ -29,6 +29,7 @@ function updateValidationPanel() {}
 
 (async () => {
   const { window: w, document: d } = await loadApp({ dataScript });
+  const H = createHelpers(w, d);
   const t = createChecker();
 
   // 1) Reine Funktionstests von shortenHerkunft() - direkt und eindeutig.
@@ -98,10 +99,7 @@ function updateValidationPanel() {}
   // 5) Programm-Übersicht zeigt weiterhin den VOLLEN Ländernamen (bewusst
   // NICHT abgekürzt, da dort mehr Platz vorhanden ist).
   w.currentTab = 'programm';
-  w.resetProgFilters();
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  w.renderProg();
+  H.showAllProg({ reset: true });
   const progMetaTexts = [...d.querySelectorAll('.prog-meta')].map(el => el.textContent);
   t.check('Programm-Übersicht zeigt weiterhin den vollen Ländernamen ("Berlin, Deutschland").',
     progMetaTexts.some(txt => txt.includes('Berlin, Deutschland')), progMetaTexts);

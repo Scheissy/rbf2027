@@ -1,14 +1,11 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { detailOpen, ev, progRow, ridOfRow: ridOf, viewVisible } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
-  const progRow = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  const ridOf = row => row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
-  const detailOpen = skey => { const r = progRow(skey); return !!r && !d.getElementById(`${ridOf(r)}-detail`).classList.contains('collapsed'); };
-  const viewVisible = tab => !d.getElementById(`view-${tab}`).classList.contains('hidden');
   const resetAll = () => {
     ev("selectedLocs.clear(); progSelectedGenres.clear(); appSettings.hiddenLocations = [];");
     d.getElementById('progShowHidden').checked = false;

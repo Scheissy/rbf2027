@@ -1,14 +1,13 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { fire } = H;
   const t = createChecker();
 
   w.currentTab = 'programm';
-  w.resetProgFilters();
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  w.renderProg();
+  H.showAllProg({ reset: true });
 
   // TBA-Auftritt (nid 5) hat keine Zeiten -> kein Dauer-Vorschlag, saubere Ausgangslage.
   const progItem = d.querySelector('[data-skey="nid:5"]');
@@ -23,7 +22,6 @@ const { loadApp, createChecker } = require('./test-helpers');
   const plus = () => d.getElementById('durationModalPlus');   // Minuten-Plus (Std-Plus hat eine eigene Id)
   const preview = () => d.getElementById('durationModalPreview').textContent;
   const summary = () => d.getElementById(`${rid}-durationsummary`);
-  const fire = (el, type) => el.dispatchEvent(new w.Event(type, { bubbles: true }));
   const typeValue = v => { input().value = v; fire(input(), 'change'); };
   const dur = () => JSON.parse(w.localStorage.getItem('rbf2027_v1') || '{}').showDurations || {};
 

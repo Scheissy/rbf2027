@@ -1,9 +1,10 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev, progRow: row, ridOf } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
   // Zähler: wie oft wurde die Programm-Liste / die Künstler-Liste / eine Künstler-Zeile aufgebaut?
   const count = { prog: 0, kuenstler: 0, artistItem: 0 };
@@ -13,8 +14,6 @@ const { loadApp, createChecker } = require('./test-helpers');
 
   const setDays = days => d.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', days.includes(b.dataset.day)));
   const allDays = () => [...d.querySelectorAll('.day-btn')].map(b => b.dataset.day);
-  const row = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  const ridOf = skey => row(skey).getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
   const detail = skey => d.getElementById(`${ridOf(skey)}-detail`);
   const prepare = () => { w.switchTab('programm'); setDays(allDays()); d.getElementById('timeFrom').value = '08:00'; d.getElementById('timeTo').value = ''; w.renderProg(); };
 

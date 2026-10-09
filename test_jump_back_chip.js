@@ -1,33 +1,22 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { detailOpen, ev, progRow, ridOfRow: ridOf, viewVisible } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
   // Dieser Test prüft das Verhalten "bei Bewegung ausblenden" (Standard der App ist seit der
   // Einstellung "nach Zeit"; die Modi testet test_back_chip_setting.js).
   ev("appSettings.backChipMode = 'scroll';");
 
   // ── Fake-Layout: jsdom hat keine Geometrie. Jede Zeile in progList/artistList
   // ist 100px hoch, die Liste 600px; scrollTop ist frei setzbar.
-  const lists = ['artistList', 'progList'].map(id => d.getElementById(id));
-  lists.forEach(l => { let st = 0; Object.defineProperty(l, 'scrollTop', { get: () => st, set: v => { st = v; }, configurable: true }); });
-  w.Element.prototype.getBoundingClientRect = function () {
-    const mk = (top, h) => ({ top, bottom: top + h, left: 0, right: 300, width: 300, height: h });
-    if (lists.includes(this)) return mk(0, 600);
-    const p = this.parentElement;
-    if (p && lists.includes(p)) { const i = [...p.children].indexOf(this); return mk(i * 100 - p.scrollTop, 100); }
-    return mk(0, 0);
-  };
+  const lists = H.installFakeLayout();
 
   let list;
   const chip = () => d.getElementById('jumpBackChip');
   const chipVisible = () => chip().style.display !== 'none';
   const label = () => d.getElementById('jumpBackLabel').textContent;
-  const viewVisible = tab => !d.getElementById(`view-${tab}`).classList.contains('hidden');
-  const progRow = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  const ridOf = row => row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
-  const detailOpen = skey => { const r = progRow(skey); return !!r && !d.getElementById(`${ridOf(r)}-detail`).classList.contains('collapsed'); };
   const toastText = () => (d.getElementById('toast') || {}).textContent || '';
   const keyOfTop = (listId, sel) => {
     const list = d.getElementById(listId);
@@ -62,11 +51,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   t.check('Der aufgeklappte Künstler ist weiterhin aufgeklappt.', ev("expandedRows.has('Nova Frequenz')"));
 
   // ───────── B) Programm -> Künstler -> zurück (mit offener Zeile) ─────────
-  w.switchTab('programm');
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  d.getElementById('timeTo').value = '';
-  w.renderProg();
+  H.showAllProg({ switchTab: true, clearTimeTo: true });
   const progList = d.getElementById('progList');
   const rows = [...progList.children];
   const itemIdx = rows.findIndex(el => el.classList.contains('prog-item') && el.dataset.skey === 'nid:2');

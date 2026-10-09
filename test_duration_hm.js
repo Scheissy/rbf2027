@@ -1,11 +1,11 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev, fire, progRow: rowOf, ridOf } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
-  const fire = (el, type) => el.dispatchEvent(new w.Event(type, { bubbles: true }));
   const $ = id => d.getElementById(id);
   const modal = () => $('durationModal');
   const mInput = () => $('durationModalInput'), hInput = () => $('durationModalHInput');
@@ -20,13 +20,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   const modeSel = () => $('settingDurationInputMode');
   const setMode = v => { modeSel().value = v; fire(modeSel(), 'change'); };
 
-  w.switchTab('programm');
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  d.getElementById('timeTo').value = '';
-  w.renderProg();
-  const rowOf = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  const ridOf = skey => rowOf(skey).getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+  H.showAllProg({ switchTab: true, clearTimeTo: true });
   const open = (skey, sug) => { w.openDurationModal(ridOf(skey), skey, 'Test', sug || 0); };
   const close = () => w.closeDurationModal();
   const TBA = 'nid:5';        // ohne Zeiten -> kein Vorschlag

@@ -1,7 +1,8 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
   const t = createChecker();
 
   // 1) Reine Funktionstests von shortenGeschlecht().
@@ -37,10 +38,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   // 4) Programm-Übersicht zeigt weiterhin den VOLLEN Wert (bewusst nicht
   // abgekürzt, dort ist genug Platz).
   w.currentTab = 'programm';
-  w.resetProgFilters();
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  w.renderProg();
+  H.showAllProg({ reset: true });
   const progGenderTexts = [...d.querySelectorAll('.prog-name .badge')].map(b => b.textContent);
   const hasFullWordInProg = progGenderTexts.some(txt => ['weiblich', 'männlich', 'divers', 'mixed'].includes(txt));
   t.check('Programm-Übersicht zeigt weiterhin den vollen Geschlecht-Wert.', hasFullWordInProg, progGenderTexts);

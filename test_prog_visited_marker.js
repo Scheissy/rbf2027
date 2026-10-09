@@ -1,19 +1,14 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev, progRow: row, ridOf } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
-  w.switchTab('programm');
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  d.getElementById('timeTo').value = '';
-  w.renderProg();
+  H.showAllProg({ switchTab: true, clearTimeTo: true });
 
-  const row = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
   const marked = skey => !!row(skey) && row(skey).classList.contains('prog-item-visited');
-  const ridOf = skey => row(skey).getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
   const dur = (skey, v) => w.setShowDuration(ridOf(skey), skey, v);
   const rate = (skey, n) => w.setShowRating(ridOf(skey), skey, n);
 

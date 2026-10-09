@@ -1,14 +1,12 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
   const t = createChecker();
 
   w.currentTab = 'programm';
-  w.resetProgFilters();
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  w.renderProg();
+  H.showAllProg({ reset: true });
 
   const nameRow = [...d.querySelectorAll('.prog-name')].find(el => el.textContent.includes('Nova Frequenz'));
   const progItem = nameRow.closest('.prog-item');

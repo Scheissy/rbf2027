@@ -1,9 +1,10 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev, progRow } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
   const flags = () => ev('JSON.stringify(planFlags)') && JSON.parse(ev('JSON.stringify(planFlags)'));
   const item = name => d.getElementById(`item-${name}`);
@@ -43,12 +44,7 @@ const { loadApp, createChecker } = require('./test-helpers');
   w.toggleExpand('Nova Frequenz');
 
   // ───────── 3) Synchron zur Programm-Übersicht ─────────
-  w.switchTab('programm');
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  d.getElementById('timeTo').value = '';
-  w.renderProg();
-  const progRow = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
+  H.showAllProg({ switchTab: true, clearTimeTo: true });
   const progFlag = skey => progRow(skey).querySelector('.plan-flag-btn');
   t.check('Programm zeigt das in der Künstler-Übersicht gesetzte Ziel als aktiv.', progFlag('nid:1').classList.contains('active'));
 

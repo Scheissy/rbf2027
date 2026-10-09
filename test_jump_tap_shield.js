@@ -1,16 +1,15 @@
-const { loadApp, createChecker } = require('./test-helpers');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { chipVisible, ev, sleep, viewVisible } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
   w.__rbfSyncJumps = false;                       // echtes (verzögertes) Verhalten testen
 
   const shield = () => d.getElementById('jumpShield');
   const shieldOn = () => shield().style.display !== 'none';
   const busy = () => d.body.classList.contains('jump-busy');
-  const viewVisible = tab => !d.getElementById(`view-${tab}`).classList.contains('hidden');
   const calls = { prog: 0, artist: 0 };
   const origProg = w.jumpToProgShow, origArtist = w.jumpToArtist;
   w.jumpToProgShow = function () { calls.prog++; return origProg.apply(this, arguments); };
@@ -76,7 +75,6 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // ───────── 6) Der Zurück-Chip-Tipp selbst ─────────
   w.jumpToProgShow('nid:1');                       // direkt (synchron) springen -> Chip erscheint
-  const chipVisible = () => d.getElementById('jumpBackChip').style.display !== 'none';
   t.check('Ausgangslage: Zurück-Chip sichtbar.', chipVisible() && viewVisible('programm'));
   d.getElementById('jumpBackLabel').click();
   t.check('Tipp auf den Zurück-Chip: Rückmeldung + Schild sofort, Rückkehr erst nach der Pause.', busy() && shieldOn() && viewVisible('programm'));

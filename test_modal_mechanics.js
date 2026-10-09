@@ -1,9 +1,10 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
 
   const backdrops = [...d.querySelectorAll('.modal-backdrop')];
   const ids = backdrops.map(b => b.id);

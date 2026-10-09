@@ -1,10 +1,10 @@
-const { loadApp, createChecker } = require('./test-helpers');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d } = await loadApp();
+  const H = createHelpers(w, d);
+  const { ev, progRow: rowOf, ridOf, sleep } = H;
   const t = createChecker();
-  const ev = code => w.eval(code);
   const $ = id => d.getElementById(id);
 
   const stored = () => (JSON.parse(w.localStorage.getItem('rbf2027_v1') || '{}').showDurations) || {};
@@ -16,13 +16,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const modalOpen = () => $('durationModal').classList.contains('open');
   const setMode = m => { ev(`appSettings.durationInputMode = '${m}';`); w.applySettingsUI(); };
 
-  w.switchTab('programm');
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  d.getElementById('timeTo').value = '';
-  w.renderProg();
-  const rowOf = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  const ridOf = skey => rowOf(skey).getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+  H.showAllProg({ switchTab: true, clearTimeTo: true });
   const TBA = 'nid:5', NOVA = 'nid:1';
   const open = (skey, sug) => w.openDurationModal(ridOf(skey), skey, 'Test', sug || 0);
   const close = () => w.closeDurationModal();

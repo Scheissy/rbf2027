@@ -73,3 +73,37 @@ mit der Zeit ihren Nutzen.
 | `test_duration_wheel.js` | Dauer-Dialog als Scroll-Rad (wie ein Wecker): je Rad drei sichtbare Zeilen (Nachbarwerte oben/unten, Mitte = aktueller Wert als echtes Eingabefeld für freie Eingabe, z. B. 47). Minuten-Modus: Räder im 5er-Raster, krumme Werte springen zum nächsten/vorigen 5er (47 -> 50 bzw. 45), Grenzen 0 (Dauer wird entfernt) und 999; Std:Min: Stunden-Rad (+/-1 Std, Minuten bleiben) und Minuten-Rad (Übertrag/Leihen über die volle Stunde). Bedienung: Wischen mit Entwurf während der Geste und genau EINEM Speichern am Ende, Schwung nach schnellem Wischen (läuft über die Wischstrecke hinaus, stoppt bei erneutem Tipp, Schließen speichert den Stand, kein Schwung bei kurzem Anhalten), Tipp auf Nachbarzeile = ein Schritt, kleine Bewegung = Tipp statt Wischen, Klick direkt nach dem Wischen wird verschluckt, Mausrad (Raststufen, Speichern nach kurzer Pause), nur linke Maustaste dreht (mit Gegenprobe), Fokus/Tastatur geht beim Wischen weg; Vorschlag erscheint gedimmt im Rad und wird durch Wischen/Tippen/Schließen nie automatisch gespeichert; bei geschlossenem Dialog bewirken Gesten nichts. |
 | `test_split_files.js` | Aufteilung der App in index.html + css/app.css + js/*.js: index.html ohne Inline-<style>/-<script>, Skript-Reihenfolge = RBF_EXPECTED_PARTS (99-main.js, letzter Teil = Start-Code), jede Datei existiert, hat Kopfzeilen und meldet sich genau einmal unter ihrem Namen an, keine Datei über 700 Zeilen, Service Worker cacht css/app.css und alle js-Dateien (ASSETS, Cache-Name erhöht, Network-First über isAppFile), App startet ohne Ladefehler (keine Vorwärtsverweise zwischen den Dateien), Vollständigkeitsprüfung: fehlt ein Teil, erscheint beim Start eine sichtbare Warnung (role=alert, Inline-Style ohne CSS-Datei) mit dem Namen des fehlenden Teils. |
 | `test_modal_mechanics.js` | Gemeinsame Modal-Mechanik (openModal/closeModal/modalBackdropClick) für alle 11 Modals: Markup-Konsistenz (jeder Hintergrund mit modalBackdropClick(event), jeder Schließen-Button schließt das eigene Modal - Schutz vor Copy-Paste-Fehlern, jedes Modal hat einen Schließen-Button), echtes Klickverhalten (öffnen, Tipp auf die Karte lässt offen, Hintergrund-Tipp und Button schließen), Dauer-Dialog bleibt ohne Hintergrund-Tipp, Öffnen-Funktionen der einzelnen Modals, nur das genannte Modal schließt, und dass die 21 früheren Einzel-Wrapper nicht mehr existieren. |
+| `test_helpers_selftest.js` | Selbsttest der gemeinsamen Test-Werkzeuge `createHelpers(w, d)`: ev, fire (inkl. bubbles), sleep, viewVisible, chipVisible, progRow, ridOfRow/ridOf, detailOpen, showAllProg (alle Tage aktiv, Optionen reset/switchTab/clearTimeTo) und installFakeLayout (Zeilen-/Listenhöhe, setzbares scrollTop, eigene Maße). Schützt davor, dass ein fehlerhafter Helfer viele Tests unbemerkt falsch prüfen lässt. |
+| `test_mutation_runner.js` | Werkzeug `mutation-check.js`: meldet erkannte Mutationen, Testlücken (alle Tests grün) und fehlende Anker korrekt, stellt die Quelldatei immer wieder her (auch bei Testlücke/fehlendem Test), mehrere Mutationen/Tests, Exit-Codes der Kommandozeile (0 / 1 / 2); außerdem, dass `mutations_modals.json` keine veralteten Ankertexte enthält. |
+
+## Gemeinsame Test-Werkzeuge
+
+`test-helpers.js` stellt neben `loadApp` und `createChecker` die Fabrik `createHelpers(w, d)` bereit:
+
+```js
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
+const { window: w, document: d } = await loadApp();
+const H = createHelpers(w, d);
+const { ev, fire, sleep, viewVisible, progRow, ridOf, detailOpen } = H;
+H.showAllProg({ switchTab: true, clearTimeTo: true });   // Programm-Liste: alle Tage, ab 08:00
+const lists = H.installFakeLayout();                      // Fake-Layout für Scroll-Tests
+```
+
+Neue Tests sollen diese Helfer verwenden statt sie erneut zu definieren. Zeilen-Element statt
+Schlüssel: `ridOfRow(el)`. Weicht ein Test bewusst ab (andere Variante), bleibt die lokale
+Definition erlaubt.
+
+## Mutationskontrolle
+
+`mutation-check.js` baut absichtlich einen Fehler in den Code ein und prüft, ob die Tests ihn bemerken
+(sonst gibt es eine Testlücke). Die Datei wird danach immer wiederhergestellt.
+
+```
+node mutation-check.js mutations_modals.json          # 9 Mutationen der Modal-Mechanik
+node mutation-check.js mutations_test_helpers.json    # 8 Mutationen der Test-Werkzeuge
+```
+
+Eine Konfiguration (JSON) nennt die Tests und je Mutation Datei, zu ersetzenden Text (`old`) und
+Ersatz (`new`). Exit-Code 1 bei Testlücke oder fehlendem Anker. Beim Hinzufügen einer Funktion
+lohnt sich eine neue `mutations_<thema>.json`.
+

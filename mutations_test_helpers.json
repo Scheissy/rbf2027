@@ -1,0 +1,60 @@
+{
+ "tests": [
+  "test_helpers_selftest.js",
+  "test_jump_back_chip.js",
+  "test_jump_links.js",
+  "test_prog_more_dates.js",
+  "test_back_chip_setting.js",
+  "test_duration_input.js"
+ ],
+ "mutations": [
+  {
+   "name": "H1 progRow findet nie eine Zeile",
+   "file": "test-helpers.js",
+   "old": "const progRow = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);",
+   "new": "const progRow = skey => undefined;"
+  },
+  {
+   "name": "H2 ridOfRow liefert die falsche Id",
+   "file": "test-helpers.js",
+   "old": "match(/toggleProgRating\\('([^']+)'\\)/)[1];\n  const ridOf",
+   "new": "match(/toggleProgRating\\('([^']+)'\\)/)[1] + 'x';\n  const ridOf"
+  },
+  {
+   "name": "H3 detailOpen meldet immer 'zu'",
+   "file": "test-helpers.js",
+   "old": "return !!r && !d.getElementById(`${ridOfRow(r)}-detail`).classList.contains('collapsed'); };",
+   "new": "return false; };"
+  },
+  {
+   "name": "H4 viewVisible ist invertiert",
+   "file": "test-helpers.js",
+   "old": "const viewVisible = tab => !d.getElementById(`view-${tab}`).classList.contains('hidden');",
+   "new": "const viewVisible = tab => d.getElementById(`view-${tab}`).classList.contains('hidden');"
+  },
+  {
+   "name": "H5 showAllProg aktiviert keine Tage",
+   "file": "test-helpers.js",
+   "old": "    d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));\n    d.getElementById('timeFrom').value = '08:00';\n    if (clearTimeTo)",
+   "new": "    d.getElementById('timeFrom').value = '08:00';\n    if (clearTimeTo)"
+  },
+  {
+   "name": "H6 Fake-Layout: Zeilenhöhe wird ignoriert",
+   "file": "test-helpers.js",
+   "old": "return mk([...p.children].indexOf(this) * rowHeight - p.scrollTop, rowHeight);",
+   "new": "return mk([...p.children].indexOf(this) * 50 - p.scrollTop, rowHeight);"
+  },
+  {
+   "name": "H7 Fake-Layout: scrollTop nicht setzbar",
+   "file": "test-helpers.js",
+   "old": "set: v => { st = v; }, configurable: true }); });\n    w.Element.prototype.getBoundingClientRect",
+   "new": "set: v => { }, configurable: true }); });\n    w.Element.prototype.getBoundingClientRect"
+  },
+  {
+   "name": "H8 fire löst keine Ereignisse aus",
+   "file": "test-helpers.js",
+   "old": "const fire = (el, type) => el.dispatchEvent(new w.Event(type, { bubbles: true }));",
+   "new": "const fire = (el, type) => true;"
+  }
+ ]
+}

@@ -1,7 +1,8 @@
-const { loadApp, createChecker } = require('./test-helpers');
+const { createHelpers, loadApp, createChecker } = require('./test-helpers');
 
 (async () => {
   const { window: w, document: d, errors } = await loadApp({ trackErrors: true });
+  const H = createHelpers(w, d);
   const t = createChecker();
   const NAME = "Dov'è Liana"; // Testdaten: Apostroph + Akzent, genau der gemeldete Fall
 
@@ -11,10 +12,7 @@ const { loadApp, createChecker } = require('./test-helpers');
 
   w.currentTab = 'programm';
   // Alle Tage/Zeiten sicherstellen, damit der Auftritt garantiert sichtbar ist.
-  w.resetProgFilters();
-  d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-  d.getElementById('timeFrom').value = '08:00';
-  w.renderProg();
+  H.showAllProg({ reset: true });
 
   // ── Test 1: Künstler-Bewertung erscheint in der Programm-Detailansicht ────
   const entry = w.allProgEntries().find(e => e.name === NAME);

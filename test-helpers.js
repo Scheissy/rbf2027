@@ -252,4 +252,52 @@ function namesInList(d) {
   return [...d.querySelectorAll('.prog-name')].map(el => el.textContent);
 }
 
-module.exports = { loadApp, reloadWithState, createChecker, INDEX_HTML_PATH, DEFAULT_DATA_PATH, ALL_DAYS, auswBlock, selectAuswertungDays, mockRowLayout, refHaversineMeters, refFormatMeters, activeDays, namesInList };
+// ── Gemeinsame Test-Werkzeuge für Programm-/Dialog-Tests ────────────────────
+// Früher in vielen Testdateien einzeln definiert (ev, fire, sleep, viewVisible,
+// progRow/row, ridOf, detailOpen, Setup "alle Tage aktiv", Fake-Layout). Die
+// Werkzeuge sind an das jeweilige Fenster w und Dokument d gebunden:
+//   const H = createHelpers(w, d);
+//   const { ev, fire, progRow } = H;
+function createHelpers(w, d) {
+  const ev = code => w.eval(code);
+  const fire = (el, type) => el.dispatchEvent(new w.Event(type, { bubbles: true }));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const viewVisible = tab => !d.getElementById(`view-${tab}`).classList.contains('hidden');
+  const chipVisible = () => d.getElementById('jumpBackChip').style.display !== 'none';
+  // Programm-Zeile zu einem Auftritts-Schlüssel (z. B. 'nid:1'); undefined, wenn nicht in der Liste
+  const progRow = skey => [...d.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
+  // Zeilen-Id (rid) aus dem Zeilen-Element bzw. direkt aus dem Auftritts-Schlüssel
+  const ridOfRow = row => row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/)[1];
+  const ridOf = skey => ridOfRow(progRow(skey));
+  // Ist die Detailansicht der Zeile aufgeklappt? (false, wenn die Zeile nicht in der Liste steht)
+  const detailOpen = skey => { const r = progRow(skey); return !!r && !d.getElementById(`${ridOfRow(r)}-detail`).classList.contains('collapsed'); };
+  // Standard-Setup: Programm-Liste mit allen Tagen und ab 08:00 aufbauen.
+  //   reset: erst w.resetProgFilters(); switchTab: erst zum Programm-Tab wechseln;
+  //   clearTimeTo: "Bis"-Zeit leeren
+  const showAllProg = ({ reset = false, switchTab = false, clearTimeTo = false } = {}) => {
+    if (reset) w.resetProgFilters();
+    if (switchTab) w.switchTab('programm');
+    d.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
+    d.getElementById('timeFrom').value = '08:00';
+    if (clearTimeTo) d.getElementById('timeTo').value = '';
+    w.renderProg();
+  };
+  // jsdom liefert überall Null-Rects. Simuliert ein einfaches Layout für Scroll-Tests: die
+  // Listen sind listHeight hoch, ihre Kinder rowHeight hoch und in DOM-Reihenfolge gestapelt;
+  // scrollTop der Listen ist frei setzbar. Gibt die Listen-Elemente zurück.
+  const installFakeLayout = (listIds = ['artistList', 'progList'], rowHeight = 100, listHeight = 600) => {
+    const lists = listIds.map(id => d.getElementById(id));
+    lists.forEach(l => { let st = 0; Object.defineProperty(l, 'scrollTop', { get: () => st, set: v => { st = v; }, configurable: true }); });
+    w.Element.prototype.getBoundingClientRect = function () {
+      const mk = (top, h) => ({ top, bottom: top + h, left: 0, right: 300, width: 300, height: h });
+      if (lists.includes(this)) return mk(0, listHeight);
+      const p = this.parentElement;
+      if (p && lists.includes(p)) return mk([...p.children].indexOf(this) * rowHeight - p.scrollTop, rowHeight);
+      return mk(0, 0);
+    };
+    return lists;
+  };
+  return { ev, fire, sleep, viewVisible, chipVisible, progRow, ridOfRow, ridOf, detailOpen, showAllProg, installFakeLayout };
+}
+
+module.exports = { createHelpers, loadApp, reloadWithState, createChecker, INDEX_HTML_PATH, DEFAULT_DATA_PATH, ALL_DAYS, auswBlock, selectAuswertungDays, mockRowLayout, refHaversineMeters, refFormatMeters, activeDays, namesInList };
