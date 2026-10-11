@@ -58,11 +58,15 @@ c = spawnSync(process.execPath, [path.join(__dirname, 'mutation-check.js')], { e
 t.check('CLI ohne Konfiguration: Hinweis zur Verwendung und Exit-Code 2.', c.status === 2 && /Aufruf/.test(c.stderr));
 t.check('Nach allen CLI-Läufen ist die Quelldatei noch unverändert.', fs.readFileSync(A, 'utf8') === SRC);
 
-// 8) Die mitgelieferte Konfiguration verweist auf existierende Dateien und Ankertexte (Schutz vor veralteten Mutationen)
-const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'mutations_modals.json'), 'utf8'));
-const stale = real.mutations.filter(m => !fs.readFileSync(path.join(__dirname, m.file), 'utf8').includes(m.old)).map(m => m.name);
-t.check('mutations_modals.json: alle Ankertexte stehen im aktuellen Code (keine veralteten Mutationen).', stale.length === 0, stale);
-t.check('mutations_modals.json: alle genannten Tests existieren.', real.tests.every(f => fs.existsSync(path.join(__dirname, f))));
+// 8) Die mitgelieferten Konfigurationen (mutations_*.json) verweisen auf existierende Dateien und Ankertexte
+const configs = fs.readdirSync(__dirname).filter(f => /^mutations_.*\.json$/.test(f));
+t.check('Es gibt mitgelieferte Mutations-Konfigurationen (Modals, Test-Helfer, Filter/Zeilen).', configs.length >= 3, configs);
+configs.forEach(f => {
+  const real = JSON.parse(fs.readFileSync(path.join(__dirname, f), 'utf8'));
+  const stale = real.mutations.filter(m => !fs.existsSync(path.join(__dirname, m.file)) || !fs.readFileSync(path.join(__dirname, m.file), 'utf8').includes(m.old)).map(m => m.name);
+  t.check(`${f}: alle Ankertexte stehen im aktuellen Code (keine veralteten Mutationen).`, stale.length === 0, stale);
+  t.check(`${f}: alle genannten Tests existieren, Namen sind eindeutig.`, real.tests.every(x => fs.existsSync(path.join(__dirname, x))) && new Set(real.mutations.map(m => m.name)).size === real.mutations.length);
+});
 
 fs.rmSync(root, { recursive: true, force: true });
 t.finish();

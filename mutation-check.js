@@ -19,6 +19,8 @@ function runMutations(config, root = process.cwd(), { timeoutMs = 180000, log = 
   const restore = new Map();
   const restoreAll = () => { for (const [file, content] of restore) fs.writeFileSync(file, content, 'utf8'); restore.clear(); };
   process.once('exit', restoreAll);
+  // Auch bei Abbruch per Strg+C / Beenden-Signal die Quelldateien wiederherstellen
+  for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { restoreAll(); process.exit(130); });
   try {
     for (const m of config.mutations) {
       const file = path.join(root, m.file);

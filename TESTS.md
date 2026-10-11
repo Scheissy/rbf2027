@@ -101,9 +101,12 @@ Definition erlaubt.
 ```
 node mutation-check.js mutations_modals.json          # 9 Mutationen der Modal-Mechanik
 node mutation-check.js mutations_test_helpers.json    # 8 Mutationen der Test-Werkzeuge
+node mutation-check.js mutations_refactor_bc.json     # 27 Mutationen der Filter-Prädikate und Zeilen-Bausteine
 ```
 
 Eine Konfiguration (JSON) nennt die Tests und je Mutation Datei, zu ersetzenden Text (`old`) und
 Ersatz (`new`). Exit-Code 1 bei Testlücke oder fehlendem Anker. Beim Hinzufügen einer Funktion
 lohnt sich eine neue `mutations_<thema>.json`.
+| `test_filter_predicates.js` | Filter der Programm- und Künstler-Übersicht als Listen einzeln testbarer Prädikate (`PROG_FILTERS`: 12, `KUENSTLER_FILTERS`: 11, jeweils feste Reihenfolge und eindeutige Ids): jedes Prädikat einzeln mit Randfällen (Tage, Sonderveranstaltungen, ausgeblendete Locations/Künstler/Events, Zeitgrenzen inklusive und Nachtprogramm, TBA, Bewertungen, Genre, Status-Tabelle, Dauer, Ziele, Suche mit Umlauten, Herkunft, Soundreferenz, Statistik-Flags); Zusammenspiel über `getFilteredAuftritte`/`getFiltered` (UND-Verknüpfung, Prädikat wirklich verwendet); `seenFilterMatches`-Wahrheitstabelle; `STAT_FILTERS`/`filterByStat` (jede Art schaltet genau ihren Filter, zweiter Klick aus, Ersetzen statt Mischzustand, "gesamt"/unbekannt setzt zurück). |
+| `test_row_builders.js` | Aus den großen Funktionen herausgelöste Bausteine einzeln: Programm-Zeile (`progIsHidden`, `progTimeColHTML`, `progInfoHTML`, `progRightColHTML`, `progRowHTML` inkl. Klassen "besucht"/"ausgeblendet", `registerProgRow`, Zusammenbau in `renderProg`), Künstlerzeile (`artistRowHTML`, `artistShowsHTML` chronologisch, `artistShowRowHTML`, `artistDetailHTML`, `renderArtistItem`), Sprung (`jumpBlockReason`, `ensureShowVisibleInProg`, `openProgShowRow`, `jumpToProgShow` zusammengesetzt) und Dauer-Dialog (`paintDurationInputs`, `paintDurationNeighbours`, `paintDurationTexts`, `paintDurationModal`). |
 

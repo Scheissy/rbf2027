@@ -1,0 +1,170 @@
+{
+ "tests": [
+  "test_filter_predicates.js",
+  "test_row_builders.js"
+ ],
+ "mutations": [
+  {
+   "name": "B1 day-Prädikat ignoriert den Tag",
+   "file": "js/14-programmliste.js",
+   "old": "{ id: 'day', test: (a, f) => f.days.includes(a.day) },",
+   "new": "{ id: 'day', test: (a, f) => true },"
+  },
+  {
+   "name": "B2 time: Grenzen exklusiv statt inklusiv",
+   "file": "js/14-programmliste.js",
+   "old": "if (f.fromVal && timeSortValue(a.time) < timeSortValue(f.fromVal)) return false;",
+   "new": "if (f.fromVal && timeSortValue(a.time) <= timeSortValue(f.fromVal)) return false;"
+  },
+  {
+   "name": "B3 time: TBA wird ausgefiltert",
+   "file": "js/14-programmliste.js",
+   "old": "if (!a.time) return true;   // Auftritte ohne Uhrzeit (TBA) werden vom Zeitfilter nie ausgeblendet",
+   "new": "if (!a.time) return false;"
+  },
+  {
+   "name": "B4 hidden: Events nicht berücksichtigt",
+   "file": "js/14-programmliste.js",
+   "old": "f.showHidden || !((d && d.ausgeblendet) || (a.isEvent && hiddenEvents[a.nid]))",
+   "new": "f.showHidden || !((d && d.ausgeblendet))"
+  },
+  {
+   "name": "B5 status: Events bei aktivem Status durchgelassen",
+   "file": "js/14-programmliste.js",
+   "old": "d ? seenFilterMatches(f.statusVal, d.gesehen) : !['ja', 'bekannt', 'unbekannt'].includes(f.statusVal)",
+   "new": "d ? seenFilterMatches(f.statusVal, d.gesehen) : true"
+  },
+  {
+   "name": "B6 genre: Events bei aktivem Genre durchgelassen",
+   "file": "js/14-programmliste.js",
+   "old": "(!d || !splitTags(d.genre).some(g => progSelectedGenres.has(g)))",
+   "new": "(d && !splitTags(d.genre).some(g => progSelectedGenres.has(g)))"
+  },
+  {
+   "name": "B7 planned-Prädikat entfernt",
+   "file": "js/14-programmliste.js",
+   "old": "  { id: 'planned', test: (a, f) => !(f.plannedOnly && !planFlags[showKey(a)]) },\n",
+   "new": ""
+  },
+  {
+   "name": "B8 getFilteredAuftritte nutzt nur das erste Prädikat",
+   "file": "js/14-programmliste.js",
+   "old": "return PROG_FILTERS.every(p => p.test(a, f, d));",
+   "new": "return PROG_FILTERS[0].test(a, f, d);"
+  },
+  {
+   "name": "B9 seenFilterMatches: bekannt schließt gesehen nicht ein",
+   "file": "js/05-filter.js",
+   "old": "if (kind === 'bekannt') return gesehen === 'bekannt' || gesehen === 'ja';",
+   "new": "if (kind === 'bekannt') return gesehen === 'bekannt';"
+  },
+  {
+   "name": "B10 Künstler-Suche ignoriert Genre",
+   "file": "js/05-filter.js",
+   "old": " || normalizeSearch(d.genre).includes(f.q) || normalizeSearch(d.herkunft).includes(f.q) },",
+   "new": " || normalizeSearch(d.herkunft).includes(f.q) },"
+  },
+  {
+   "name": "B11 Künstler: ausgeblendet-Prädikat invertiert",
+   "file": "js/05-filter.js",
+   "old": "test: d => statsAusgeblendetFilter ? !!d.ausgeblendet : !d.ausgeblendet",
+   "new": "test: d => statsAusgeblendetFilter ? !d.ausgeblendet : !!d.ausgeblendet"
+  },
+  {
+   "name": "B12 Künstler: reinhören-Prädikat entfernt",
+   "file": "js/05-filter.js",
+   "old": "  { id: 'listen', test: d => !statsReinhoerenFilter || !!d.reinhoeren },\n",
+   "new": ""
+  },
+  {
+   "name": "B13 getFiltered nutzt nur das erste Prädikat",
+   "file": "js/05-filter.js",
+   "old": "KUENSTLER_FILTERS.every(p => p.test(d, f))",
+   "new": "KUENSTLER_FILTERS[0].test(d, f)"
+  },
+  {
+   "name": "B14 filterByStat: zweiter Klick schaltet nicht aus",
+   "file": "js/09-kuenstler.js",
+   "old": "if (stat && !wasActive) stat.turnOn();",
+   "new": "if (stat) stat.turnOn();"
+  },
+  {
+   "name": "B15 STAT_FILTERS: 'bekannt' setzt falschen Wert",
+   "file": "js/09-kuenstler.js",
+   "old": "STAT_FILTERS[kind] = { isOn: () => kuenstlerSeenFilter === kind, turnOn: () => { kuenstlerSeenFilter = kind; } };",
+   "new": "STAT_FILTERS[kind] = { isOn: () => kuenstlerSeenFilter === kind, turnOn: () => { kuenstlerSeenFilter = 'ja'; } };"
+  },
+  {
+   "name": "C1 progRowHTML: Reihenfolge Info/Rechts vertauscht",
+   "file": "js/14-programmliste.js",
+   "old": "      ${progInfoHTML(a, d, rid, skey)}\n      ${progRightColHTML(a, d, rid)}",
+   "new": "      ${progRightColHTML(a, d, rid)}\n      ${progInfoHTML(a, d, rid, skey)}"
+  },
+  {
+   "name": "C2 progRowHTML: 'besucht'-Klasse fehlt",
+   "file": "js/14-programmliste.js",
+   "old": "${visited ? ' prog-item-visited' : ''}",
+   "new": ""
+  },
+  {
+   "name": "C3 registerProgRow merkt sich den Auftritt nicht",
+   "file": "js/14-programmliste.js",
+   "old": "  progEntryByRid[rid] = a;\n}",
+   "new": "}"
+  },
+  {
+   "name": "C4 progRightColHTML: 📅 immer",
+   "file": "js/14-programmliste.js",
+   "old": "${hasLaterShow(a) ?",
+   "new": "${true ?"
+  },
+  {
+   "name": "C5 progIsHidden: Events ignoriert",
+   "file": "js/14-programmliste.js",
+   "old": "return (d && d.ausgeblendet) || (a.isEvent && !!hiddenEvents[a.nid]);",
+   "new": "return (d && d.ausgeblendet);"
+  },
+  {
+   "name": "C6 artistShowsHTML: nicht sortiert",
+   "file": "js/09-kuenstler.js",
+   "old": ".sort((a,b) => dayIndex(a.day)-dayIndex(b.day)||timeSortValue(a.time)-timeSortValue(b.time))\n    ",
+   "new": "\n    "
+  },
+  {
+   "name": "C7 renderArtistItem: Detail auch zugeklappt",
+   "file": "js/09-kuenstler.js",
+   "old": "if (isExp) html += artistDetailHTML(",
+   "new": "if (true) html += artistDetailHTML("
+  },
+  {
+   "name": "C8 jumpBlockReason: Location nicht geprüft",
+   "file": "js/11-sprung.js",
+   "old": "if (appSettings.hiddenLocations.includes(a.location)) return `Location",
+   "new": "if (false) return `Location"
+  },
+  {
+   "name": "C9 ensureShowVisibleInProg: meldet nie eine Änderung",
+   "file": "js/11-sprung.js",
+   "old": "  return filtersChanged;\n}",
+   "new": "  return false;\n}"
+  },
+  {
+   "name": "C10 openProgShowRow: Zeile wird nicht aufgeklappt",
+   "file": "js/11-sprung.js",
+   "old": "  if (detail && detail.classList.contains('collapsed')) toggleProgRating(rid);\n  if (rid && keepOrigin === true) toggleTermine(rid, true);",
+   "new": "  if (rid && keepOrigin === true) toggleTermine(rid, true);"
+  },
+  {
+   "name": "C11 paintDurationModal ruft Nachbarzeilen nicht auf",
+   "file": "js/07-dauer.js",
+   "old": "  paintDurationNeighbours(shown, hm);\n  paintDurationTexts(shown, suggestMode, val);\n}",
+   "new": "  paintDurationTexts(shown, suggestMode, val);\n}"
+  },
+  {
+   "name": "C12 paintDurationInputs: Minutenfeld zeigt Gesamtminuten",
+   "file": "js/07-dauer.js",
+   "old": "inputEl.value = String(hm ? shown % 60 : shown);",
+   "new": "inputEl.value = String(shown);"
+  }
+ ]
+}
