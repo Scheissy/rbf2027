@@ -324,30 +324,19 @@ function jumpBack() {
   if (window.requestAnimationFrame) requestAnimationFrame(restore);
 }
 
-// Künstler-Übersicht -> Programm-Übersicht: zeigt genau diesen Auftritt an.
-// Filter werden nur so weit angepasst, wie nötig, damit der Auftritt sichtbar
-// ist: erst Tag aktivieren, dann Uhrzeit-Filter lösen, zuletzt die übrigen
-// Programm-Filter zurücksetzen. Was den Auftritt nicht ausblendet, bleibt wie
-// es ist. Dauereinstellungen (ausgeblendete Locations/Künstler) werden NICHT
-// angetastet - dann gibt es stattdessen einen Hinweis und man bleibt, wo man ist.
-function jumpToProgShow(skey, keepOrigin) {
-  const a = allProgEntries().find(x => showKey(x) === skey);
-  if (!a) { toast('Auftritt nicht gefunden', false); return; }
-  if (appSettings.hiddenLocations.includes(a.location)) {
-    toast(`Location „${a.location}“ ist in den Einstellungen ausgeblendet`, false);
-    return;
-  }
+// Warum ein Sprung zu diesem Auftritt nicht möglich ist (Hinweistext), sonst null.
+// Dauereinstellungen (ausgeblendete Locations/Künstler) werden NICHT angetastet.
+function jumpBlockReason(a) {
+  if (appSettings.hiddenLocations.includes(a.location)) return `Location „${a.location}“ ist in den Einstellungen ausgeblendet`;
   const d = dataMap[a.name];
   const hiddenArtist = (d && d.ausgeblendet) || (a.isEvent && hiddenEvents[a.nid]);
-  if (hiddenArtist && !document.getElementById('progShowHidden').checked) {
-    toast('Dieser Auftritt ist ausgeblendet - in der Programm-Übersicht „Ausgeblendete anzeigen“ aktivieren', false);
-    return;
-  }
-  const origin = captureJumpOrigin('programm', a.name, keepOrigin === true);
-  // Filter werden VOR dem Tabwechsel angepasst (sie sind reine DOM-Werte und
-  // wirken auch bei verstecktem Tab): so baut der Tabwechsel die Liste genau
-  // EINMAL mit dem Endergebnis auf, statt erst mit den alten und dann noch
-  // einmal mit den neuen Filtern (der Listenaufbau ist der teuerste Schritt).
+  if (hiddenArtist && !document.getElementById('progShowHidden').checked) return 'Dieser Auftritt ist ausgeblendet - in der Programm-Übersicht „Ausgeblendete anzeigen“ aktivieren';
+  return null;
+}
+// Passt die Programm-Filter so weit an, dass der Auftritt sichtbar wird (erst Tag aktivieren,
+// dann Uhrzeit lösen, zuletzt die übrigen Filter zurücksetzen). Gibt zurück, ob sich
+// ein Filter geändert hat. Die Filter sind reine DOM-Werte und wirken auch bei verstecktem Tab.
+function ensureShowVisibleInProg(a, skey) {
   const visible = () => getFilteredAuftritte().some(x => showKey(x) === skey);
   let filtersChanged = false;
   if (!visible()) {
@@ -364,11 +353,13 @@ function jumpToProgShow(skey, keepOrigin) {
     filtersChanged = true;
   }
   if (!visible()) { clearProgFilterState(); filtersChanged = true; }
-  if (currentTab !== 'programm') switchTab('programm');   // baut die Liste auf
-  else { hideJumpBackChip(); if (filtersChanged) renderProg(); }   // schon im Programm: nur bei geänderten Filtern neu aufbauen
-  showJumpBackChip(origin);
+  return filtersChanged;
+}
+// Klappt die Zeile des Auftritts in der Programm-Liste auf, scrollt hin und hebt sie hervor.
+// Gibt die Zeile zurück (null, wenn sie nicht in der Liste steht).
+function openProgShowRow(skey, keepOrigin) {
   const row = [...document.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey);
-  if (!row) { toast('Auftritt in der Programm-Übersicht nicht gefunden', false); return; }
+  if (!row) return null;
   const rid = (row.getAttribute('onclick').match(/toggleProgRating\('([^']+)'\)/) || [])[1];
   const detail = rid && document.getElementById(`${rid}-detail`);
   if (detail && detail.classList.contains('collapsed')) toggleProgRating(rid);
@@ -376,6 +367,31 @@ function jumpToProgShow(skey, keepOrigin) {
   const header = document.querySelector('#progList .prog-day-header');
   scrollListToEl('progList', row, header ? header.offsetHeight : 0);
   flashEl(row);
+  return row;
+}
+
+// Künstler-Übersicht -> Programm-Übersicht: zeigt genau diesen Auftritt an.
+// Filter werden nur so weit angepasst, wie nötig, damit der Auftritt sichtbar
+// ist: erst Tag aktivieren, dann Uhrzeit-Filter lösen, zuletzt die übrigen
+// Programm-Filter zurücksetzen. Was den Auftritt nicht ausblendet, bleibt wie
+// es ist. Dauereinstellungen (ausgeblendete Locations/Künstler) werden NICHT
+// angetastet - dann gibt es stattdessen einen Hinweis und man bleibt, wo man ist.
+function jumpToProgShow(skey, keepOrigin) {
+  const a = allProgEntries().find(x => showKey(x) === skey);
+  if (!a) { toast('Auftritt nicht gefunden', false); return; }
+  const blocked = jumpBlockReason(a);
+  if (blocked) { toast(blocked, false); return; }
+  const origin = captureJumpOrigin('programm', a.name, keepOrigin === true);
+  // Filter werden VOR dem Tabwechsel angepasst (sie sind reine DOM-Werte und
+  // wirken auch bei verstecktem Tab): so baut der Tabwechsel die Liste genau
+  // EINMAL mit dem Endergebnis auf, statt erst mit den alten und dann noch
+  // einmal mit den neuen Filtern (der Listenaufbau ist der teuerste Schritt).
+  const filtersChanged = ensureShowVisibleInProg(a, skey);
+  if (currentTab !== 'programm') switchTab('programm');   // baut die Liste auf
+  else { hideJumpBackChip(); if (filtersChanged) renderProg(); }   // schon im Programm: nur bei geänderten Filtern neu aufbauen
+  showJumpBackChip(origin);
+  const row = openProgShowRow(skey, keepOrigin);
+  if (!row) { toast('Auftritt in der Programm-Übersicht nicht gefunden', false); return; }
   if (origin && origin.sameTab) origin.snapAfter = JSON.stringify(snapshotProgFilters());
   startJumpScrollWatch('progList', () => [...document.querySelectorAll('#progList .prog-item')].find(el => el.dataset.skey === skey));
 }

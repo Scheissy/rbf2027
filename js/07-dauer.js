@@ -70,11 +70,9 @@ function nextDurationHourStep(cur, delta) {
   if (delta > 0) return cur + 60 <= DURATION_MAX_MIN ? cur + 60 : cur;
   return cur >= 60 ? cur - 60 : cur;
 }
-// Zeichnet den Dialog für einen Wert (shown = Gesamtminuten). val = Wert, auf den
-// sich "Zurücksetzen" und die Vorschau beziehen. Speichert NICHTS - beim Drehen
-// der Räder wird erst am Ende der Geste gespeichert (siehe wheelCommit).
-function paintDurationModal(shown, suggestMode, val) {
-  const hm = durationInputMode() === 'hm';
+// Dauer-Dialog zeichnen, in drei Teilen: Eingabefelder (Werte, Std-Zeile), Nachbar-Zeilen
+// der Räder und Texte/Buttons (Vorschau, Zurücksetzen/Schließen, Speichern).
+function paintDurationInputs(shown, suggestMode, hm) {
   const inputEl = document.getElementById('durationModalInput');
   if (inputEl) {
     // Std:Min -> dieses Feld ist nur der Minuten-ANTEIL (0-59), sonst alle Minuten
@@ -88,6 +86,8 @@ function paintDurationModal(shown, suggestMode, val) {
   if (sepEl) sepEl.style.display = hm ? 'flex' : 'none';
   const hInput = document.getElementById('durationModalHInput');
   if (hInput) { hInput.value = String(Math.floor(shown / 60)); hInput.classList.toggle('duration-input-suggest', suggestMode); }
+}
+function paintDurationNeighbours(shown, hm) {
   // Nachbar-Zeilen: zeigen, wohin ein Tipp bzw. ein Schritt führt (Minuten: nächster
   // 5er, Stunden: +/- 1 Std). Wo es nicht weitergeht, bleibt die Zeile leer und inaktiv.
   const setNb = (id, target, label) => {
@@ -102,6 +102,8 @@ function paintDurationModal(shown, suggestMode, val) {
   const hPrev = nextDurationHourStep(shown, -1), hNext = nextDurationHourStep(shown, 1);
   setNb('durationModalHMinus', hPrev, Math.floor(hPrev / 60));
   setNb('durationModalHPlus', hNext, Math.floor(hNext / 60));
+}
+function paintDurationTexts(shown, suggestMode, val) {
   const prevEl = document.getElementById('durationModalPreview');
   if (prevEl) prevEl.textContent = suggestMode
     ? `Vorschlag aus Start-/Endzeit (${formatDuration(shown)}) - noch nicht gespeichert`
@@ -114,6 +116,16 @@ function paintDurationModal(shown, suggestMode, val) {
   }
   const saveEl = document.getElementById('durationModalSave');
   if (saveEl) saveEl.textContent = suggestMode ? 'Als Auftritt speichern' : 'Fertig';
+}
+
+// Zeichnet den Dialog für einen Wert (shown = Gesamtminuten). val = Wert, auf den
+// sich "Zurücksetzen" und die Vorschau beziehen. Speichert NICHTS - beim Drehen
+// der Räder wird erst am Ende der Geste gespeichert (siehe wheelCommit).
+function paintDurationModal(shown, suggestMode, val) {
+  const hm = durationInputMode() === 'hm';
+  paintDurationInputs(shown, suggestMode, hm);
+  paintDurationNeighbours(shown, hm);
+  paintDurationTexts(shown, suggestMode, val);
 }
 // val = echter gespeicherter Wert. Ist er 0 und gibt es einen Vorschlag, zeigt
 // das Modal den Vorschlag (gedimmt) an - OHNE ihn zu speichern.
@@ -343,54 +355,6 @@ function setShowDuration(rid, skey, valStr) {
   // Neu-Filterung nötig.
   if (document.getElementById('fProgDuration').checked && val === 0) { renderProg(); return; }
   updateProgTotalTime();
-}
-// Zentrale Filterlogik der Programm-Übersicht - von renderProg() UND
-// updateProgTotalTime() genutzt, damit beide immer exakt dieselben Auftritte
-// als "aktuell sichtbar" behandeln.
-function getFilteredAuftritte() {
-  const days = activeDays();
-  const fromVal = document.getElementById('timeFrom').value;
-  const toVal = document.getElementById('timeTo').value;
-  const showHidden = document.getElementById('progShowHidden').checked;
-  const minRating = progRatingFilter;
-  const statusVal = document.getElementById('fProgStatus').value;
-  const durationOnly = document.getElementById('fProgDuration').checked;
-  const plannedOnly = document.getElementById('fProgPlanned').checked;
-  return allProgEntries().filter(a => {
-    if (!days.includes(a.day)) return false;
-    // Globaler Settings-Schalter (Settings-Tab): Sonderveranstaltungen komplett
-    // aus der Programm-Übersicht ausblenden, unabhängig von den beiden
-    // Musik-/Sonstige-Events-Checkboxen darunter (die regeln nur die
-    // Feinauswahl, wenn Events grundsätzlich angezeigt werden).
-    if (a.isEvent && !appSettings.showRbfEvents) return false;
-    // Persistente Locations-Verwaltung (Settings): komplett ausgeblendete
-    // Locations gelten immer, unabhängig vom temporären Location-Filter oben
-    // - bewusst NICHT Teil von "Filter zurücksetzen", da es sich eher um eine
-    // dauerhafte Anzeige-Einstellung handelt als um einen Sitzungsfilter.
-    if (appSettings.hiddenLocations.includes(a.location)) return false;
-    if (selectedLocs.size > 0 && !selectedLocs.has(a.location)) return false;
-    const d = dataMap[a.name];
-    // Gleicher Haken wie bei ausgeblendeten Künstlern, gilt hier zusätzlich
-    // für einzeln ausgeblendete Sonderveranstaltungen (hiddenEvents statt
-    // d.ausgeblendet, da Events keinen dataMap-Eintrag haben).
-    if (!showHidden && ((d && d.ausgeblendet) || (a.isEvent && hiddenEvents[a.nid]))) return false;
-    if (a.time) {
-      if (fromVal && timeSortValue(a.time) < timeSortValue(fromVal)) return false;
-      if (toVal && timeSortValue(a.time) > timeSortValue(toVal)) return false;
-    }
-    if (minRating > 0 && avgRating(d) < minRating) return false;
-    // Events haben kein Genre (nur Künstler-Auftritte) - bei aktivem Filter
-    // fallen sie damit konsequent raus, genau wie sie es bei den anderen
-    // künstler-spezifischen Filtern (Bewertung, Status) oben bereits tun.
-    if (progSelectedGenres.size > 0 && (!d || !splitTags(d.genre).some(g => progSelectedGenres.has(g)))) return false;
-    if (progShowRatingFilter > 0 && (showRatings[showKey(a)] || 0) < progShowRatingFilter) return false;
-    if (statusVal === 'ja' && d?.gesehen !== 'ja') return false;
-    if (statusVal === 'bekannt' && d?.gesehen !== 'bekannt' && d?.gesehen !== 'ja') return false; // "gesehen" ist immer auch "bekannt"
-    if (statusVal === 'unbekannt' && (!d || d.gesehen !== '')) return false;
-    if (durationOnly && showDurations[showKey(a)] === undefined) return false;
-    if (plannedOnly && !planFlags[showKey(a)]) return false;
-    return true;
-  });
 }
 // Summiert die eingetragenen Dauern über die aktuell gefilterte Auftritts-
 // liste (identische Filter wie renderProg()) und zeigt das Ergebnis über der

@@ -8,16 +8,13 @@ function toggleExpand(name) {
   else expandedRows.add(name);
   renderArtistItem(name);
 }
-function renderArtistItem(name) {
-  const d = dataMap[name];
-  const container = document.getElementById(`item-${name}`);
-  if (!container) return;
-  const isExp = expandedRows.has(name);
-  const shows = auftritte.filter(a => a.name === name);
+// ── KÜNSTLERZEILE ────────────────────────────────────────────────────────────
+// Zugeklappt: Kopfzeile (artistRowHTML). Aufgeklappt zusätzlich die Detailansicht
+// (artistDetailHTML) mit der Liste der Auftritte (artistShowsHTML / artistShowRowHTML).
+function artistRowHTML(d, name, nj, isExp, hasShows) {
   const gc = genderBadgeClass(d.geschlecht);
-  const nj = escJs(name);
-  let html = `<div class="artist-row${d.ausgeblendet ? ' artist-row-hidden' : ''}" onclick="toggleExpand('${nj}')">
-    <div class="artist-expand">${shows.length ? (isExp ? '▾' : '▸') : '·'}</div>
+  return `<div class="artist-row${d.ausgeblendet ? ' artist-row-hidden' : ''}" onclick="toggleExpand('${nj}')">
+    <div class="artist-expand">${hasShows ? (isExp ? '▾' : '▸') : '·'}</div>
     <div class="artist-name">${d.name}${avgMiniStarsHTML(d)}</div>
     ${anchorBadgeHTML(d.name)}
     ${commentIconHTML(name, nj, d)}
@@ -28,20 +25,20 @@ function renderArtistItem(name) {
     <div class="artist-country">${shortenHerkunft(d.herkunft)}</div>
     <div class="badge ${gc}" title="${d.geschlecht}">${shortenGeschlecht(d.geschlecht)}</div>
   </div>`;
-  if (isExp) {
-    let showsHtml = '';
-    if (shows.length) {
-      showsHtml = shows.sort((a,b) => dayIndex(a.day)-dayIndex(b.day)||timeSortValue(a.time)-timeSortValue(b.time))
-        .map((s, idx) => {
-          const skey = showKey(s);
-          const srid = `art-${nj}-${idx}`;
-          const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${mapsUrl(s.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(s.location)}')">${s.location}</a>` : s.location) : '<span style="opacity:.6">TBA</span>';
-          return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
-        }).join('');
-    } else {
-      showsHtml = '<div class="no-shows">Noch keine Auftrittsdaten</div>';
-    }
-    html += `<div class="artist-detail" id="detail-${name}">
+}
+function artistShowRowHTML(s, idx, nj) {
+  const skey = showKey(s);
+  const srid = `art-${nj}-${idx}`;
+  const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${mapsUrl(s.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(s.location)}')">${s.location}</a>` : s.location) : '<span style="opacity:.6">TBA</span>';
+  return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
+}
+function artistShowsHTML(nj, shows) {
+  if (!shows.length) return '<div class="no-shows">Noch keine Auftrittsdaten</div>';
+  return shows.sort((a,b) => dayIndex(a.day)-dayIndex(b.day)||timeSortValue(a.time)-timeSortValue(b.time))
+    .map((s, idx) => artistShowRowHTML(s, idx, nj)).join('');
+}
+function artistDetailHTML(d, name, nj, showsHtml) {
+  return `<div class="artist-detail" id="detail-${name}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
         <div class="detail-genre">${d.genre}</div>
         <div class="detail-links">
@@ -76,7 +73,17 @@ function renderArtistItem(name) {
         <div class="shows-list">${showsHtml}</div>
       </div>
     </div>`;
-  }
+}
+
+function renderArtistItem(name) {
+  const d = dataMap[name];
+  const container = document.getElementById(`item-${name}`);
+  if (!container) return;
+  const isExp = expandedRows.has(name);
+  const shows = auftritte.filter(a => a.name === name);
+  const nj = escJs(name);
+  let html = artistRowHTML(d, name, nj, isExp, shows.length > 0);
+  if (isExp) html += artistDetailHTML(d, name, nj, artistShowsHTML(nj, shows));
   container.innerHTML = html;
 }
 
@@ -185,25 +192,25 @@ function resetKuenstlerFilters() {
   statsUnbewertetFilter = false;
   statsReinhoerenFilter = false;
 }
+// Statistik-Kacheln der Künstler-Übersicht als Filter: pro Art ein Schalter. isOn() = ist der
+// Filter gerade aktiv, turnOn() setzt ihn. "Gesamt" ist ohnehin nie "aktiv" markiert und fehlt hier.
+const STAT_FILTERS = {
+  bewertet: { isOn: () => statsBewertetFilter, turnOn: () => { statsBewertetFilter = true; } },
+  unbewertet: { isOn: () => statsUnbewertetFilter, turnOn: () => { statsUnbewertetFilter = true; } },
+  reinhoeren: { isOn: () => statsReinhoerenFilter, turnOn: () => { statsReinhoerenFilter = true; } },
+  ausgeblendet: { isOn: () => statsAusgeblendetFilter, turnOn: () => { statsAusgeblendetFilter = true; } },
+};
+['ja', 'bekannt', 'unbekannt'].forEach(kind => {
+  STAT_FILTERS[kind] = { isOn: () => kuenstlerSeenFilter === kind, turnOn: () => { kuenstlerSeenFilter = kind; } };
+});
 function filterByStat(kind) {
   // Zweiter Klick auf einen bereits aktiven Filter hebt ihn wieder auf
   // (Vergleich MUSS vor resetKuenstlerFilters() passieren, da der Reset die
-  // Flags ja gerade zurücksetzt). "Gesamt" braucht das nicht - ist ohnehin
-  // nie "aktiv" markiert, landet also nie in diesem Fall.
-  const wasActive =
-    (kind === 'bewertet' && statsBewertetFilter) ||
-    (kind === 'unbewertet' && statsUnbewertetFilter) ||
-    (kind === 'reinhoeren' && statsReinhoerenFilter) ||
-    (kind === 'ausgeblendet' && statsAusgeblendetFilter) ||
-    ((kind === 'ja' || kind === 'bekannt' || kind === 'unbekannt') && kuenstlerSeenFilter === kind);
+  // Flags ja gerade zurücksetzt).
+  const stat = STAT_FILTERS[kind];
+  const wasActive = !!stat && stat.isOn();
   resetKuenstlerFilters();
-  if (!wasActive) {
-    if (kind === 'bewertet') statsBewertetFilter = true;
-    else if (kind === 'unbewertet') statsUnbewertetFilter = true;
-    else if (kind === 'reinhoeren') statsReinhoerenFilter = true;
-    else if (kind === 'ausgeblendet') statsAusgeblendetFilter = true;
-    else if (kind === 'ja' || kind === 'bekannt' || kind === 'unbekannt') kuenstlerSeenFilter = kind;
-  }
+  if (stat && !wasActive) stat.turnOn();
   render();
   const activeEl = document.querySelector('#stats .stat-active');
   if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });

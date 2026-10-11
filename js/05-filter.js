@@ -111,28 +111,45 @@ function normalizeSearch(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+
+// Künstler-Status-Filter ("Gesehen"/"Bekannt"/"Unbekannt") - gemeinsam für die
+// Künstler- und die Programm-Übersicht. "gesehen" ist immer auch "bekannt".
+// Unbekannte/leere Filterwerte lassen alles durch.
+function seenFilterMatches(kind, gesehen) {
+  if (kind === 'ja') return gesehen === 'ja';
+  if (kind === 'bekannt') return gesehen === 'bekannt' || gesehen === 'ja';
+  if (kind === 'unbekannt') return gesehen === '';
+  return true;
+}
+// ── KÜNSTLER-FILTER (Prädikate) ──────────────────────────────────────────────
+// Wie die Programm-Filter: jedes Prädikat einzeln testbar (true = Künstler bleibt
+// sichtbar), test(d, f) mit d = Künstler-Eintrag und f = einmal eingelesener
+// Filterzustand (readKuenstlerFilterState).
+function readKuenstlerFilterState() {
+  return {
+    q: normalizeSearch(document.getElementById('search').value),
+    fg: document.getElementById('fGender').value,
+    fs: kuenstlerSeenFilter,
+    fHerkunft: document.getElementById('fHerkunft').value,
+    fSoundRef: document.getElementById('fSoundRef').value,
+  };
+}
+const KUENSTLER_FILTERS = [
+  { id: 'search', test: (d, f) => !f.q || normalizeSearch(d.name).includes(f.q) || normalizeSearch(d.genre).includes(f.q) || normalizeSearch(d.herkunft).includes(f.q) },
+  { id: 'gender', test: (d, f) => !f.fg || d.geschlecht === f.fg },
+  { id: 'seen', test: (d, f) => seenFilterMatches(f.fs, d.gesehen) },
+  { id: 'genre', test: d => !(selectedGenres.size > 0 && !splitTags(d.genre).some(g => selectedGenres.has(g))) },
+  { id: 'herkunft', test: (d, f) => !f.fHerkunft || splitTags(d.herkunft).includes(f.fHerkunft) },
+  { id: 'soundRef', test: (d, f) => !f.fSoundRef || soundReferencesFor(d.name).some(r => (r.referenz || []).includes(f.fSoundRef)) },
+  { id: 'hidden', test: d => statsAusgeblendetFilter ? !!d.ausgeblendet : !d.ausgeblendet },
+  { id: 'avg', test: d => !(kuenstlerAvgFilter > 0 && avgRating(d) < kuenstlerAvgFilter) },
+  { id: 'rated', test: d => !statsBewertetFilter || d.rp > 0 || d.rl > 0 },
+  { id: 'unrated', test: d => !(statsUnbewertetFilter && d.rp > 0) },
+  { id: 'listen', test: d => !statsReinhoerenFilter || !!d.reinhoeren },
+];
 function getFiltered() {
-  const q = normalizeSearch(document.getElementById('search').value);
-  const fg = document.getElementById('fGender').value;
-  const fs = kuenstlerSeenFilter;
-  const fHerkunft = document.getElementById('fHerkunft').value;
-  const fSoundRef = document.getElementById('fSoundRef').value;
-  return Object.values(dataMap).filter(d => {
-    if (q && !normalizeSearch(d.name).includes(q) && !normalizeSearch(d.genre).includes(q) && !normalizeSearch(d.herkunft).includes(q)) return false;
-    if (fg && d.geschlecht !== fg) return false;
-    if (fs === 'ja' && d.gesehen !== 'ja') return false;
-    if (fs === 'bekannt' && d.gesehen !== 'bekannt' && d.gesehen !== 'ja') return false; // "gesehen" ist immer auch "bekannt"
-    if (fs === 'unbekannt' && d.gesehen !== '') return false;
-    if (selectedGenres.size > 0 && !splitTags(d.genre).some(g => selectedGenres.has(g))) return false;
-    if (fHerkunft && !splitTags(d.herkunft).includes(fHerkunft)) return false;
-    if (fSoundRef && !soundReferencesFor(d.name).some(r => (r.referenz || []).includes(fSoundRef))) return false;
-    if (statsAusgeblendetFilter ? !d.ausgeblendet : d.ausgeblendet) return false;
-    if (kuenstlerAvgFilter > 0 && avgRating(d) < kuenstlerAvgFilter) return false;
-    if (statsBewertetFilter && !(d.rp > 0 || d.rl > 0)) return false;
-    if (statsUnbewertetFilter && d.rp > 0) return false;
-    if (statsReinhoerenFilter && !d.reinhoeren) return false;
-    return true;
-  });
+  const f = readKuenstlerFilterState();
+  return Object.values(dataMap).filter(d => KUENSTLER_FILTERS.every(p => p.test(d, f)));
 }
 
 // Baut die Genre-/Herkunft-Dropdowns aus allen im Datensatz vorkommenden

@@ -67,6 +67,131 @@ function renderProgCore() {
   renderProgCoreImpl();
   lastProgRenderSig = progRenderSignature();
 }
+// ── PROGRAMM-FILTER (Prädikate) ──────────────────────────────────────────────
+// Zentrale Filterlogik der Programm-Übersicht - von renderProg() UND
+// updateProgTotalTime() genutzt, damit beide immer exakt dieselben Auftritte
+// als "aktuell sichtbar" behandeln. Jede Bedingung ist ein eigenes, einzeln
+// testbares Prädikat (true = der Auftritt bleibt sichtbar); ein Auftritt ist
+// sichtbar, wenn ALLE Prädikate zutreffen. test(a, f, d):
+//   a = Auftritt, f = einmal eingelesener Filterzustand (readProgFilterState),
+//   d = Künstler-Eintrag aus dataMap (bei Sonderveranstaltungen undefined).
+function readProgFilterState() {
+  return {
+    days: activeDays(),
+    fromVal: document.getElementById('timeFrom').value,
+    toVal: document.getElementById('timeTo').value,
+    showHidden: document.getElementById('progShowHidden').checked,
+    minRating: progRatingFilter,
+    statusVal: document.getElementById('fProgStatus').value,
+    durationOnly: document.getElementById('fProgDuration').checked,
+    plannedOnly: document.getElementById('fProgPlanned').checked,
+  };
+}
+const PROG_FILTERS = [
+  { id: 'day', test: (a, f) => f.days.includes(a.day) },
+  // Globaler Settings-Schalter (Settings-Tab): Sonderveranstaltungen komplett
+  // aus der Programm-Übersicht ausblenden, unabhängig von den beiden
+  // Musik-/Sonstige-Events-Checkboxen darunter (die regeln nur die
+  // Feinauswahl, wenn Events grundsätzlich angezeigt werden).
+  { id: 'rbfEvents', test: a => !(a.isEvent && !appSettings.showRbfEvents) },
+  // Persistente Locations-Verwaltung (Settings): komplett ausgeblendete
+  // Locations gelten immer, unabhängig vom temporären Location-Filter oben
+  // - bewusst NICHT Teil von "Filter zurücksetzen", da es sich eher um eine
+  // dauerhafte Anzeige-Einstellung handelt als um einen Sitzungsfilter.
+  { id: 'hiddenLocation', test: a => !appSettings.hiddenLocations.includes(a.location) },
+  { id: 'location', test: a => !(selectedLocs.size > 0 && !selectedLocs.has(a.location)) },
+  // Gleicher Haken wie bei ausgeblendeten Künstlern, gilt hier zusätzlich
+  // für einzeln ausgeblendete Sonderveranstaltungen (hiddenEvents statt
+  // d.ausgeblendet, da Events keinen dataMap-Eintrag haben).
+  { id: 'hidden', test: (a, f, d) => f.showHidden || !((d && d.ausgeblendet) || (a.isEvent && hiddenEvents[a.nid])) },
+  { id: 'time', test: (a, f) => {
+    if (!a.time) return true;   // Auftritte ohne Uhrzeit (TBA) werden vom Zeitfilter nie ausgeblendet
+    if (f.fromVal && timeSortValue(a.time) < timeSortValue(f.fromVal)) return false;
+    if (f.toVal && timeSortValue(a.time) > timeSortValue(f.toVal)) return false;
+    return true;
+  } },
+  { id: 'avgRating', test: (a, f, d) => !(f.minRating > 0 && avgRating(d) < f.minRating) },
+  // Events haben kein Genre (nur Künstler-Auftritte) - bei aktivem Filter
+  // fallen sie damit konsequent raus, genau wie sie es bei den anderen
+  // künstler-spezifischen Filtern (Bewertung, Status) bereits tun.
+  { id: 'genre', test: (a, f, d) => !(progSelectedGenres.size > 0 && (!d || !splitTags(d.genre).some(g => progSelectedGenres.has(g)))) },
+  { id: 'showRating', test: a => !(progShowRatingFilter > 0 && (showRatings[showKey(a)] || 0) < progShowRatingFilter) },
+  // Status: Künstler-Status (gesehen/bekannt/unbekannt); Events haben keinen -> fallen bei aktivem Status-Filter raus
+  { id: 'status', test: (a, f, d) => d ? seenFilterMatches(f.statusVal, d.gesehen) : !['ja', 'bekannt', 'unbekannt'].includes(f.statusVal) },
+  { id: 'duration', test: (a, f) => !(f.durationOnly && showDurations[showKey(a)] === undefined) },
+  { id: 'planned', test: (a, f) => !(f.plannedOnly && !planFlags[showKey(a)]) },
+];
+function getFilteredAuftritte() {
+  const f = readProgFilterState();
+  return allProgEntries().filter(a => {
+    const d = dataMap[a.name];
+    return PROG_FILTERS.every(p => p.test(a, f, d));
+  });
+}
+
+// ── EINE PROGRAMM-ZEILE ──────────────────────────────────────────────────────
+// Die zugeklappte Zeile ist in drei Teile gegliedert (Zeit, Info, rechte Spalte);
+// die Detailansicht entsteht erst beim Aufklappen (siehe progDetailHTML).
+// Vereinheitlichter "ist ausgeblendet"-Zustand: Künstler über d.ausgeblendet,
+// Sonderveranstaltungen über hiddenEvents[a.nid] - beide teilen sich dieselbe
+// Optik (Badge, gedimmte Zeile) und denselben Filter-Haken.
+function progIsHidden(a, d) {
+  return (d && d.ausgeblendet) || (a.isEvent && !!hiddenEvents[a.nid]);
+}
+function progTimeColHTML(a, rid, skey) {
+  return `<div class="prog-time-col">
+        <div class="prog-time-val">${a.time ? a.time + (a.endTime ? `<br><span style="opacity:.55;font-size:11px">–${a.endTime}</span>` : '') : '<span style="opacity:.55">TBA</span>'}</div>
+        ${planFlagHTML(rid, skey)}
+      </div>`;
+}
+function progInfoHTML(a, d, rid, skey) {
+  const gc = d ? genderBadgeClass(d.geschlecht) : '';
+  const showRating = showRatings[skey] || 0;
+  const duration = showDurations[skey];
+  const nj = escJs(a.name);
+  const isHidden = progIsHidden(a, d);
+  return `<div class="prog-info">
+        <div class="prog-name">${a.isEvent ? (a.kategorie === 'Musik' ? '🎵 ' : '🎪 ') : ''}${a.name}${anchorBadgeHTML(a.name, true)}${d ? ` <span class="badge ${gc}" style="font-size:9px">${d.geschlecht}</span>` : ''}${isHidden ? ' <span class="badge b-hidden" style="font-size:9px">🙈</span>' : ''}${commentIconHTML(a.name, nj, d, rid)}${soundRefIconHTML(a.name)}</div>
+        <div class="prog-meta">${d ? d.genre + ' · ' + d.herkunft : (a.isEvent ? `Sonderveranstaltung · ${a.kategorie}` : '')}</div>
+        <div class="prog-loc">${a.location ? (appSettings.showMapsLinks ? `📍 <a href="${mapsUrl(a.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(a.location)}')">${a.location}</a>` : `📍 ${a.location}`) : `📍 <span style="opacity:.6">TBA</span>`}</div>
+        <div class="prog-show-meta-row" id="${rid}-showmetarow" style="${(showRating || duration !== undefined) ? '' : 'display:none'}">
+          <div class="prog-showrating-summary" id="${rid}-showsummary" style="${showRating ? '' : 'display:none'}">${miniStarsShow(showRating)}</div>
+          <div class="prog-duration-summary" id="${rid}-durationsummary" style="${duration !== undefined ? '' : 'display:none'}">${duration !== undefined ? `⏱ ${formatDuration(duration)}` : ''}</div>
+        </div>
+      </div>`;
+}
+function progRightColHTML(a, d, rid) {
+  const vals = d ? [d.rp, d.rl].filter(v => v > 0) : [];
+  const avg = avgRating(d);
+  return `<div class="prog-right-col">
+        <div class="prog-avg-badge${vals.length ? ' has-rating' : ''}" id="${rid}-summary" title="${vals.length ? `Künstler-Ø-Bewertung: ${avg.toFixed(1)}` : ''}">${miniStars(avg)}</div>
+        <div class="prog-rating-arrow" id="${rid}-arrow">▸</div>
+        ${hasLaterShow(a) ? '<div class="prog-more-ind" title="Weitere Termine danach" aria-label="Weitere Termine danach">📅</div>' : ''}
+      </div>`;
+}
+// Gesamte zugeklappte Zeile. data-skey: stabiler Zeilen-Schlüssel für die Scroll-Anker-
+// Erhaltung in renderProg() - im Gegensatz zu "rid" bleibt er unabhängig von der
+// Position in der (durch Filter veränderlichen) Liste gleich. visitedNames: Künstler
+// mit >= 1 besuchtem Auftritt (grüne Markierung).
+function progRowHTML(a, rid, visitedNames) {
+  const d = dataMap[a.name];
+  const skey = showKey(a);
+  const isHidden = progIsHidden(a, d);
+  const visited = visitedNames.has(a.name);
+  return `<div class="prog-item${isHidden ? ' prog-item-hidden' : ''}${visited ? ' prog-item-visited' : ''}" id="${rid}-row" data-skey="${escapeHtml(skey)}" onclick="toggleProgRating('${rid}')">
+      ${progTimeColHTML(a, rid, skey)}
+      ${progInfoHTML(a, d, rid, skey)}
+      ${progRightColHTML(a, d, rid)}
+    </div>
+    <div class="prog-detail collapsed" id="${rid}-detail"></div>`;
+}
+// Merkt sich, welche Zeile (rid) zu welchem Auftritt/Künstler gehört (siehe progRidsByName).
+function registerProgRow(a, rid) {
+  if (!progRidsByName[a.name]) progRidsByName[a.name] = [];
+  progRidsByName[a.name].push(rid);
+  progEntryByRid[rid] = a;
+}
+
 function renderProgCoreImpl() {
   const list = document.getElementById('progList');
   openProgRid = null;
@@ -89,48 +214,9 @@ function renderProgCoreImpl() {
   let html = '', lastDay = '';
   filtered.forEach((a, i) => {
     if (a.day !== lastDay) { html += `<div class="prog-day-header">${a.day}</div>`; lastDay = a.day; }
-    const d = dataMap[a.name];
-    const gc = d ? genderBadgeClass(d.geschlecht) : '';
-    const vals = d ? [d.rp, d.rl].filter(v => v > 0) : [];
-    const avg = avgRating(d);
     const rid = `progr-${i}`;
-    if (!progRidsByName[a.name]) progRidsByName[a.name] = [];
-    progRidsByName[a.name].push(rid);
-    progEntryByRid[rid] = a;
-    const skey = showKey(a);
-    const showRating = showRatings[skey] || 0;
-    const duration = showDurations[skey];
-    const nj = escJs(a.name);
-    const skeyEsc = escJs(skey);
-    // Vereinheitlichter "ist ausgeblendet"-Zustand: Künstler über d.ausgeblendet,
-    // Sonderveranstaltungen über hiddenEvents[a.nid] - beide teilen sich
-    // dieselbe Optik (Badge, gedimmte Zeile) und denselben Filter-Haken oben.
-    const isHidden = (d && d.ausgeblendet) || (a.isEvent && !!hiddenEvents[a.nid]);
-    // data-skey: stabiler Zeilen-Schlüssel für die Scroll-Anker-Erhaltung in
-    // renderProg() (siehe dort) - im Gegensatz zu "rid" bleibt er unabhängig
-    // von der Position in der (durch Filter veränderlichen) Liste gleich.
-    const visited = visitedNames.has(a.name);   // Künstler mit >= 1 besuchtem Auftritt
-    html += `<div class="prog-item${isHidden ? ' prog-item-hidden' : ''}${visited ? ' prog-item-visited' : ''}" id="${rid}-row" data-skey="${escapeHtml(skey)}" onclick="toggleProgRating('${rid}')">
-      <div class="prog-time-col">
-        <div class="prog-time-val">${a.time ? a.time + (a.endTime ? `<br><span style="opacity:.55;font-size:11px">–${a.endTime}</span>` : '') : '<span style="opacity:.55">TBA</span>'}</div>
-        ${planFlagHTML(rid, skey)}
-      </div>
-      <div class="prog-info">
-        <div class="prog-name">${a.isEvent ? (a.kategorie === 'Musik' ? '🎵 ' : '🎪 ') : ''}${a.name}${anchorBadgeHTML(a.name, true)}${d ? ` <span class="badge ${gc}" style="font-size:9px">${d.geschlecht}</span>` : ''}${isHidden ? ' <span class="badge b-hidden" style="font-size:9px">🙈</span>' : ''}${commentIconHTML(a.name, nj, d, rid)}${soundRefIconHTML(a.name)}</div>
-        <div class="prog-meta">${d ? d.genre + ' · ' + d.herkunft : (a.isEvent ? `Sonderveranstaltung · ${a.kategorie}` : '')}</div>
-        <div class="prog-loc">${a.location ? (appSettings.showMapsLinks ? `📍 <a href="${mapsUrl(a.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(a.location)}')">${a.location}</a>` : `📍 ${a.location}`) : `📍 <span style="opacity:.6">TBA</span>`}</div>
-        <div class="prog-show-meta-row" id="${rid}-showmetarow" style="${(showRating || duration !== undefined) ? '' : 'display:none'}">
-          <div class="prog-showrating-summary" id="${rid}-showsummary" style="${showRating ? '' : 'display:none'}">${miniStarsShow(showRating)}</div>
-          <div class="prog-duration-summary" id="${rid}-durationsummary" style="${duration !== undefined ? '' : 'display:none'}">${duration !== undefined ? `⏱ ${formatDuration(duration)}` : ''}</div>
-        </div>
-      </div>
-      <div class="prog-right-col">
-        <div class="prog-avg-badge${vals.length ? ' has-rating' : ''}" id="${rid}-summary" title="${vals.length ? `Künstler-Ø-Bewertung: ${avg.toFixed(1)}` : ''}">${miniStars(avg)}</div>
-        <div class="prog-rating-arrow" id="${rid}-arrow">▸</div>
-        ${hasLaterShow(a) ? '<div class="prog-more-ind" title="Weitere Termine danach" aria-label="Weitere Termine danach">📅</div>' : ''}
-      </div>
-    </div>
-    <div class="prog-detail collapsed" id="${rid}-detail"></div>`;
+    registerProgRow(a, rid);
+    html += progRowHTML(a, rid, visitedNames);
   });
   list.innerHTML = html;
   saveFilterState();
