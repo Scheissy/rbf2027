@@ -7,14 +7,77 @@
 // dient (zusammen mit Filtern/Einstellungen) der Erkennung, ob die Programm-
 // Liste beim Tabwechsel neu aufgebaut werden muss (siehe progListStale()).
 let stateVersion = 0;
+
+
+// ── SPEICHER-SCHEMA (Hauptdaten) ─────────────────────────────────────────────
+// Das Speicherformat (localStorage-Key LS_KEY) ist bewusst unverändert geblieben:
+// bestehende Speicherstände und Exporte müssen weiter lesbar sein. Neu ist nur,
+// dass Speichern und Laden aus denselben Tabellen kommen statt aus zwei
+// getrennt gepflegten Listen.
+//
+// Ein Künstler-Eintrag im Speicherstand (Kurzschlüssel). Die REIHENFOLGE ist Teil
+// des Formats (JSON-Schlüsselreihenfolge) - nicht umsortieren.
+const ARTIST_RECORD_SAVE = [
+  ['n', d => d.name],
+  ['rp', d => d.rp],
+  ['rl', d => d.rl],
+  ['s', d => d.gesehen],
+  ['u', d => d.customUrl],
+  ['manual', d => d.manual || false],
+  ['edited', d => d.edited || false],
+  ['genre', d => d.genre],
+  ['herkunft', d => d.herkunft],
+  ['geschlecht', d => d.geschlecht],
+  ['rbfUrl', d => d.rbfUrl],
+  ['h', d => d.ausgeblendet || false],
+  ['c', d => d.kommentar || ''],
+  ['rh', d => d.reinhoeren || false],
+];
+// Beim Laden: Eigenschaft in dataMap <- Wert aus dem Speicherstand (mit Begrenzung/Standardwert)
+const ARTIST_RECORD_LOAD = [
+  ['rp', r => Math.min(r.rp || 0, MAX)],
+  ['rl', r => Math.min(r.rl || 0, MAX)],
+  ['gesehen', r => r.s || ''],
+  ['customUrl', r => r.u || ''],
+  ['manual', r => r.manual || false],
+  ['edited', r => r.edited || false],
+  ['ausgeblendet', r => r.h || false],
+  ['kommentar', r => (r.c || '').slice(0, MAX_COMMENT_LEN)],
+  ['reinhoeren', r => r.rh || false],
+];
+function artistToRecord(d) {
+  return Object.fromEntries(ARTIST_RECORD_SAVE.map(([key, get]) => [key, get(d)]));
+}
+function applyArtistRecord(target, r) {
+  ARTIST_RECORD_LOAD.forEach(([prop, get]) => { target[prop] = get(r); });
+}
+// Nur Künstler mit mindestens einer Nutzer-Änderung werden gespeichert.
+function artistHasUserData(d) {
+  return d.rp > 0 || d.rl > 0 || d.gesehen || d.customUrl || d.manual || d.ausgeblendet || d.kommentar || d.reinhoeren;
+}
+// Von Hand angelegter Künstler (nicht in RAW), beim Laden wiederhergestellt.
+function newManualArtist(name, r) {
+  return { name: name, genre: r.genre || '', herkunft: r.herkunft || '', geschlecht: r.geschlecht || 'mixed', rbfUrl: r.rbfUrl || '', rp: 0, rl: 0, gesehen: '', customUrl: '', manual: true, edited: false, ausgeblendet: false, kommentar: '', reinhoeren: false };
+}
+// Weitere Teile des Hauptspeicherstands: Schlüssel im Speicherstand + Zugriff auf die
+// jeweilige Variable. Reihenfolge = Reihenfolge im gespeicherten JSON. Beim Laden wird nur
+// übernommen, was vorhanden (truthy) ist; die Einstellungen werden mit den Standardwerten verschmolzen.
+const PERSISTED_STATE = [
+  { key: 'showRatings', get: () => showRatings, set: v => { showRatings = v; } },
+  { key: 'showDurations', get: () => showDurations, set: v => { showDurations = v; } },
+  { key: 'planFlags', get: () => planFlags, set: v => { planFlags = v; } },
+  { key: 'hiddenEvents', get: () => hiddenEvents, set: v => { hiddenEvents = v; } },
+  { key: 'settings', get: () => appSettings, set: v => { appSettings = { ...appSettings, ...v }; } },
+];
+
 function saveToStorage() {
   stateVersion++;
   try {
-    const payload = Object.values(dataMap)
-      .filter(d => d.rp > 0 || d.rl > 0 || d.gesehen || d.customUrl || d.manual || d.ausgeblendet || d.kommentar || d.reinhoeren)
-      .map(d => ({ n: d.name, rp: d.rp, rl: d.rl, s: d.gesehen, u: d.customUrl, manual: d.manual||false, edited: d.edited||false, genre: d.genre, herkunft: d.herkunft, geschlecht: d.geschlecht, rbfUrl: d.rbfUrl, h: d.ausgeblendet||false, c: d.kommentar||'', rh: d.reinhoeren||false }));
+    const payload = Object.values(dataMap).filter(artistHasUserData).map(artistToRecord);
     const auftrittePayload = auftritte.length ? auftritte : [];
-    localStorage.setItem(LS_KEY, JSON.stringify({ ratings: payload, auftritte: auftrittePayload, auftritteVersion: DATA_VERSION, showRatings, showDurations, planFlags, hiddenEvents, settings: appSettings }));
+    const data = { ratings: payload, auftritte: auftrittePayload, auftritteVersion: DATA_VERSION };
+    PERSISTED_STATE.forEach(p => { data[p.key] = p.get(); });
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
     document.getElementById('saveIndicator').textContent = '✓ gespeichert';
     setTimeout(() => document.getElementById('saveIndicator').textContent = '', 2000);
   } catch(e) { safeLog('Storage error', e); }
@@ -50,20 +113,8 @@ function loadFromStorage() {
           }
         }
         // restore manual artists that aren't in RAW
-        if (!dataMap[targetName] && r.manual) {
-          dataMap[targetName] = { name:targetName, genre:r.genre||'', herkunft:r.herkunft||'', geschlecht:r.geschlecht||'mixed', rbfUrl:r.rbfUrl||'', rp:0, rl:0, gesehen:'', customUrl:'', manual:true, edited:false, ausgeblendet:false, kommentar:'', reinhoeren:false };
-        }
-        if (dataMap[targetName]) {
-          dataMap[targetName].rp = Math.min(r.rp || 0, MAX);
-          dataMap[targetName].rl = Math.min(r.rl || 0, MAX);
-          dataMap[targetName].gesehen = r.s || '';
-          dataMap[targetName].customUrl = r.u || '';
-          dataMap[targetName].manual = r.manual || false;
-          dataMap[targetName].edited = r.edited || false;
-          dataMap[targetName].ausgeblendet = r.h || false;
-          dataMap[targetName].kommentar = (r.c || '').slice(0, MAX_COMMENT_LEN);
-          dataMap[targetName].reinhoeren = r.rh || false;
-        }
+        if (!dataMap[targetName] && r.manual) dataMap[targetName] = newManualArtist(targetName, r);
+        if (dataMap[targetName]) applyArtistRecord(dataMap[targetName], r);
       });
     }
     if (data.auftritte && data.auftritte.length) {
@@ -77,11 +128,7 @@ function loadFromStorage() {
         safeLog(`Auftrittsdaten-Update erkannt (${data.auftritteVersion || 'unbekannt'} -> ${DATA_VERSION}), alter lokaler Stand verworfen.`);
       }
     }
-    if (data.showRatings) showRatings = data.showRatings;
-    if (data.showDurations) showDurations = data.showDurations;
-    if (data.planFlags) planFlags = data.planFlags;
-    if (data.hiddenEvents) hiddenEvents = data.hiddenEvents;
-    if (data.settings) appSettings = { ...appSettings, ...data.settings };
+    PERSISTED_STATE.forEach(p => { if (data[p.key]) p.set(data[p.key]); });
   } catch(e) { safeLog('Load error', e); }
 }
 
@@ -94,33 +141,46 @@ function loadFromStorage() {
 // und renderProg() aufgerufen, deckt also automatisch jede Filteränderung ab,
 // ohne dass jede einzelne Filter-Bedienstelle das selbst anstoßen müsste.
 const LS_FILTERS_KEY = 'rbf2027_filters_v1';
+// Die Filter-Felder als Tabelle: Schlüssel im Speicherstand (Reihenfolge = JSON-Reihenfolge),
+// erwarteter Typ beim Laden und Lesen/Schreiben des jeweiligen Zustands. Typ passt nicht
+// -> Feld wird beim Laden übersprungen. Mengen/Arrays werden beim Laden ERGÄNZT (nicht ersetzt).
+const filterField = (key, type, read, write) => ({ key, type, read, write });
+const filterInput = (key, id) => filterField(key, 'string', () => document.getElementById(id).value, v => { document.getElementById(id).value = v; });
+const filterCheck = (key, id) => filterField(key, 'boolean', () => document.getElementById(id).checked, v => { document.getElementById(id).checked = v; });
+// getSet: Funktion, die die Menge liefert (die Variable könnte neu zugewiesen werden)
+const filterSet = (key, getSet) => filterField(key, 'array', () => [...getSet()], arr => arr.forEach(x => getSet().add(x)));
+const FILTER_FIELDS = [
+  filterInput('search', 'search'),
+  filterInput('fGender', 'fGender'),
+  filterField('kuenstlerSeenFilter', 'string', () => kuenstlerSeenFilter, v => { kuenstlerSeenFilter = v; }),
+  filterSet('selectedGenres', () => selectedGenres),
+  filterInput('fHerkunft', 'fHerkunft'),
+  filterInput('fSoundRef', 'fSoundRef'),
+  filterField('fHidden', 'boolean', () => statsAusgeblendetFilter, v => { statsAusgeblendetFilter = v; }),
+  filterField('kuenstlerAvgFilter', 'number', () => kuenstlerAvgFilter, v => { kuenstlerAvgFilter = v; }),
+  filterField('statsBewertetFilter', 'boolean', () => statsBewertetFilter, v => { statsBewertetFilter = v; }),
+  filterField('statsUnbewertetFilter', 'boolean', () => statsUnbewertetFilter, v => { statsUnbewertetFilter = v; }),
+  filterField('statsReinhoerenFilter', 'boolean', () => statsReinhoerenFilter, v => { statsReinhoerenFilter = v; }),
+  filterField('activeDays', 'array',
+    () => [...document.querySelectorAll('.day-btn')].filter(b => b.classList.contains('active')).map(b => b.dataset.day),
+    arr => document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', arr.includes(b.dataset.day)))),
+  filterInput('timeFrom', 'timeFrom'),
+  filterInput('timeTo', 'timeTo'),
+  filterSet('selectedLocs', () => selectedLocs),
+  filterSet('progSelectedGenres', () => progSelectedGenres),
+  filterField('progRatingFilter', 'number', () => progRatingFilter, v => { progRatingFilter = v; }),
+  filterField('progShowRatingFilter', 'number', () => progShowRatingFilter, v => { progShowRatingFilter = v; }),
+  filterInput('fProgStatus', 'fProgStatus'),
+  filterCheck('fProgDuration', 'fProgDuration'),
+  filterCheck('fProgPlanned', 'fProgPlanned'),
+  filterCheck('progShowHidden', 'progShowHidden'),
+];
+const filterTypeOk = (type, v) => type === 'array' ? Array.isArray(v) : typeof v === type;
 function saveFilterState() {
   if (!appSettings.persistFilters) return;
   try {
-    const state = {
-      search: document.getElementById('search').value,
-      fGender: document.getElementById('fGender').value,
-      kuenstlerSeenFilter,
-      selectedGenres: [...selectedGenres],
-      fHerkunft: document.getElementById('fHerkunft').value,
-      fSoundRef: document.getElementById('fSoundRef').value,
-      fHidden: statsAusgeblendetFilter,
-      kuenstlerAvgFilter,
-      statsBewertetFilter,
-      statsUnbewertetFilter,
-      statsReinhoerenFilter,
-      activeDays: [...document.querySelectorAll('.day-btn')].filter(b => b.classList.contains('active')).map(b => b.dataset.day),
-      timeFrom: document.getElementById('timeFrom').value,
-      timeTo: document.getElementById('timeTo').value,
-      selectedLocs: [...selectedLocs],
-      progSelectedGenres: [...progSelectedGenres],
-      progRatingFilter,
-      progShowRatingFilter,
-      fProgStatus: document.getElementById('fProgStatus').value,
-      fProgDuration: document.getElementById('fProgDuration').checked,
-      fProgPlanned: document.getElementById('fProgPlanned').checked,
-      progShowHidden: document.getElementById('progShowHidden').checked
-    };
+    const state = {};
+    FILTER_FIELDS.forEach(f => { state[f.key] = f.read(); });
     localStorage.setItem(LS_FILTERS_KEY, JSON.stringify(state));
   } catch (e) { safeLog('Filter-Speichern fehlgeschlagen:', e); }
 }
@@ -136,34 +196,17 @@ function loadFilterState() {
     const raw = localStorage.getItem(LS_FILTERS_KEY);
     if (!raw) return;
     const s = JSON.parse(raw);
-    if (typeof s.search === 'string') document.getElementById('search').value = s.search;
+    FILTER_FIELDS.forEach(f => { if (filterTypeOk(f.type, s[f.key])) f.write(s[f.key]); });
     document.getElementById('searchClear').style.display = document.getElementById('search').value ? 'flex' : 'none';
-    if (typeof s.fGender === 'string') document.getElementById('fGender').value = s.fGender;
-    if (typeof s.kuenstlerSeenFilter === 'string') kuenstlerSeenFilter = s.kuenstlerSeenFilter;
-    if (Array.isArray(s.selectedGenres)) s.selectedGenres.forEach(g => selectedGenres.add(g));
-    if (typeof s.fHerkunft === 'string') document.getElementById('fHerkunft').value = s.fHerkunft;
-    if (typeof s.fSoundRef === 'string') document.getElementById('fSoundRef').value = s.fSoundRef;
-    if (typeof s.fHidden === 'boolean') statsAusgeblendetFilter = s.fHidden;
-    if (typeof s.kuenstlerAvgFilter === 'number') kuenstlerAvgFilter = s.kuenstlerAvgFilter;
-    if (typeof s.statsBewertetFilter === 'boolean') statsBewertetFilter = s.statsBewertetFilter;
-    if (typeof s.statsUnbewertetFilter === 'boolean') statsUnbewertetFilter = s.statsUnbewertetFilter;
-    if (typeof s.statsReinhoerenFilter === 'boolean') statsReinhoerenFilter = s.statsReinhoerenFilter;
-    if (Array.isArray(s.activeDays)) {
-      document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', s.activeDays.includes(b.dataset.day)));
-    }
-    if (typeof s.timeFrom === 'string') document.getElementById('timeFrom').value = s.timeFrom;
-    if (typeof s.timeTo === 'string') document.getElementById('timeTo').value = s.timeTo;
-    if (Array.isArray(s.selectedLocs)) s.selectedLocs.forEach(l => selectedLocs.add(l));
-    if (Array.isArray(s.progSelectedGenres)) s.progSelectedGenres.forEach(g => progSelectedGenres.add(g));
-    if (typeof s.progRatingFilter === 'number') progRatingFilter = s.progRatingFilter;
-    if (typeof s.progShowRatingFilter === 'number') progShowRatingFilter = s.progShowRatingFilter;
-    if (typeof s.fProgStatus === 'string') document.getElementById('fProgStatus').value = s.fProgStatus;
-    if (typeof s.fProgDuration === 'boolean') document.getElementById('fProgDuration').checked = s.fProgDuration;
-    if (typeof s.fProgPlanned === 'boolean') document.getElementById('fProgPlanned').checked = s.fProgPlanned;
-    if (typeof s.progShowHidden === 'boolean') document.getElementById('progShowHidden').checked = s.progShowHidden;
     smartProgDefaultsApplied = true;
   } catch (e) { safeLog('Filter-Laden fehlgeschlagen:', e); }
 }
+// Stellt alle gespeicherten Filter-Einstellungen wieder her. Wird einmalig
+// beim App-Start aufgerufen, NACH updateTagFilters()/buildTimeDropdowns()
+// (damit die betroffenen <select>-Optionen/Tag-Buttons schon existieren) und
+// VOR dem ersten render(). Setzt smartProgDefaultsApplied, damit der
+// "automatisch auf 'jetzt' springen"-Mechanismus einen wiederhergestellten
+// Zustand nicht sofort wieder überschreibt.
 
 // ── PWA REGISTRATION ─────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
