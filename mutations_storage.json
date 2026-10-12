@@ -1,0 +1,145 @@
+{
+ "tests": [
+  "test_storage_schema.js"
+ ],
+ "mutations": [
+  {
+   "name": "S1 Künstler-Eintrag: rp und rl vertauscht",
+   "file": "js/02-storage.js",
+   "old": "  ['rp', d => d.rp],\n  ['rl', d => d.rl],",
+   "new": "  ['rl', d => d.rl],\n  ['rp', d => d.rp],"
+  },
+  {
+   "name": "S2 Künstler-Eintrag: Kommentar fehlt",
+   "file": "js/02-storage.js",
+   "old": "  ['c', d => d.kommentar || ''],\n",
+   "new": ""
+  },
+  {
+   "name": "S3 Künstler-Eintrag: manual ohne Standardwert",
+   "file": "js/02-storage.js",
+   "old": "['manual', d => d.manual || false],",
+   "new": "['manual', d => d.manual],"
+  },
+  {
+   "name": "S4 Laden: Bewertung nicht begrenzt",
+   "file": "js/02-storage.js",
+   "old": "['rp', r => Math.min(r.rp || 0, MAX)],",
+   "new": "['rp', r => r.rp || 0],"
+  },
+  {
+   "name": "S5 Laden: Kommentar nicht gekürzt",
+   "file": "js/02-storage.js",
+   "old": "['kommentar', r => (r.c || '').slice(0, MAX_COMMENT_LEN)],",
+   "new": "['kommentar', r => (r.c || '')],"
+  },
+  {
+   "name": "S6 Laden: gesehen liest das falsche Feld",
+   "file": "js/02-storage.js",
+   "old": "['gesehen', r => r.s || ''],",
+   "new": "['gesehen', r => r.u || ''],"
+  },
+  {
+   "name": "S7 artistHasUserData ignoriert reinhören",
+   "file": "js/02-storage.js",
+   "old": " || d.kommentar || d.reinhoeren;",
+   "new": " || d.kommentar;"
+  },
+  {
+   "name": "S8 Manueller Künstler: falsches Standard-Geschlecht",
+   "file": "js/02-storage.js",
+   "old": "geschlecht: r.geschlecht || 'mixed'",
+   "new": "geschlecht: r.geschlecht || ''"
+  },
+  {
+   "name": "S9 Hauptzustand: Reihenfolge vertauscht",
+   "file": "js/02-storage.js",
+   "old": "  { key: 'showDurations', get: () => showDurations, set: v => { showDurations = v; } },\n  { key: 'planFlags', get: () => planFlags, set: v => { planFlags = v; } },",
+   "new": "  { key: 'planFlags', get: () => planFlags, set: v => { planFlags = v; } },\n  { key: 'showDurations', get: () => showDurations, set: v => { showDurations = v; } },"
+  },
+  {
+   "name": "S10 Einstellungen ersetzen statt zu verschmelzen",
+   "file": "js/02-storage.js",
+   "old": "set: v => { appSettings = { ...appSettings, ...v }; } },",
+   "new": "set: v => { appSettings = v; } },"
+  },
+  {
+   "name": "S11 Speichern erhöht stateVersion nicht",
+   "file": "js/02-storage.js",
+   "old": "function saveToStorage() {\n  stateVersion++;",
+   "new": "function saveToStorage() {"
+  },
+  {
+   "name": "S12 Laden übernimmt auch fehlende Teile",
+   "file": "js/02-storage.js",
+   "old": "PERSISTED_STATE.forEach(p => { if (data[p.key]) p.set(data[p.key]); });",
+   "new": "PERSISTED_STATE.forEach(p => { p.set(data[p.key]); });"
+  },
+  {
+   "name": "S13 Filterfeld 'Nur Ziele' fehlt",
+   "file": "js/02-storage.js",
+   "old": "  filterCheck('fProgPlanned', 'fProgPlanned'),\n",
+   "new": ""
+  },
+  {
+   "name": "S14 Filterfelder timeFrom/timeTo vertauscht",
+   "file": "js/02-storage.js",
+   "old": "  filterInput('timeFrom', 'timeFrom'),\n  filterInput('timeTo', 'timeTo'),",
+   "new": "  filterInput('timeTo', 'timeTo'),\n  filterInput('timeFrom', 'timeFrom'),"
+  },
+  {
+   "name": "S15 Typprüfung lässt alles durch",
+   "file": "js/02-storage.js",
+   "old": "const filterTypeOk = (type, v) => type === 'array' ? Array.isArray(v) : typeof v === type;",
+   "new": "const filterTypeOk = (type, v) => true;"
+  },
+  {
+   "name": "S16 Typprüfung für Listen falsch",
+   "file": "js/02-storage.js",
+   "old": "const filterTypeOk = (type, v) => type === 'array' ? Array.isArray(v) : typeof v === type;",
+   "new": "const filterTypeOk = (type, v) => type === 'array' ? typeof v === 'object' : typeof v === type;"
+  },
+  {
+   "name": "S17 Such-Kreuz wird nicht aktualisiert",
+   "file": "js/02-storage.js",
+   "old": "    document.getElementById('searchClear').style.display = document.getElementById('search').value ? 'flex' : 'none';\n",
+   "new": ""
+  },
+  {
+   "name": "S18 Filter-Speichern ignoriert persistFilters",
+   "file": "js/02-storage.js",
+   "old": "function saveFilterState() {\n  if (!appSettings.persistFilters) return;",
+   "new": "function saveFilterState() {"
+  },
+  {
+   "name": "S19 Filter-Laden ignoriert persistFilters",
+   "file": "js/02-storage.js",
+   "old": "function loadFilterState() {\n  if (!appSettings.persistFilters) return;",
+   "new": "function loadFilterState() {"
+  },
+  {
+   "name": "S20 Aktive Tage werden nicht gesetzt",
+   "file": "js/02-storage.js",
+   "old": "arr => document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', arr.includes(b.dataset.day)))),",
+   "new": "arr => {}),"
+  },
+  {
+   "name": "S21 smartProgDefaultsApplied wird nicht gesetzt",
+   "file": "js/02-storage.js",
+   "old": "    smartProgDefaultsApplied = true;\n  } catch (e) { safeLog('Filter-Laden fehlgeschlagen:', e); }",
+   "new": "  } catch (e) { safeLog('Filter-Laden fehlgeschlagen:', e); }"
+  },
+  {
+   "name": "S22 Namenssuche ohne Schreibweisen-Fallback",
+   "file": "js/02-storage.js",
+   "old": "if (match) {\n            safeLog(`Künstlername",
+   "new": "if (false) {\n            safeLog(`Künstlername"
+  },
+  {
+   "name": "S23 Veraltete Auftrittsdaten werden übernommen",
+   "file": "js/02-storage.js",
+   "old": "if (data.auftritteVersion === DATA_VERSION) {",
+   "new": "if (true) {"
+  }
+ ]
+}
