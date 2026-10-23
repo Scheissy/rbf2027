@@ -1,0 +1,187 @@
+{
+ "tests": [
+  "test_escaping.js"
+ ],
+ "mutations": [
+  {
+   "name": "E1 Künstlername in der Liste ungeschützt",
+   "file": "js/09-kuenstler.js",
+   "old": "<div class=\"artist-name\">${escapeHtml(d.name)}${avgMiniStarsHTML(d)}</div>",
+   "new": "<div class=\"artist-name\">${d.name}${avgMiniStarsHTML(d)}</div>"
+  },
+  {
+   "name": "E2 Genre im Künstler-Detail ungeschützt",
+   "file": "js/09-kuenstler.js",
+   "old": "<div class=\"detail-genre\">${escapeHtml(d.genre)}</div>",
+   "new": "<div class=\"detail-genre\">${d.genre}</div>"
+  },
+  {
+   "name": "E3 Location in der Auftrittszeile ungeschützt",
+   "file": "js/09-kuenstler.js",
+   "old": "${escapeHtml(s.location)}</a>` : escapeHtml(s.location))",
+   "new": "${s.location}</a>` : s.location)"
+  },
+  {
+   "name": "E4 Zeilen-Id des Künstlers ungeschützt",
+   "file": "js/09-kuenstler.js",
+   "old": "id=\"item-${escapeHtml(d.name)}\"",
+   "new": "id=\"item-${d.name}\""
+  },
+  {
+   "name": "E5 Detail-Id ungeschützt",
+   "file": "js/09-kuenstler.js",
+   "old": "id=\"detail-${escapeHtml(name)}\"",
+   "new": "id=\"detail-${name}\""
+  },
+  {
+   "name": "E6 Links ohne safeUrl (Künstler-Detail)",
+   "file": "js/09-kuenstler.js",
+   "old": "href=\"${escapeHtml(safeUrl(d.customUrl || d.rbfUrl))}\"",
+   "new": "href=\"${escapeHtml(d.customUrl || d.rbfUrl)}\""
+  },
+  {
+   "name": "E7 Zeilen-Id aus rohem Namen statt idSafe",
+   "file": "js/09-kuenstler.js",
+   "old": "const srid = `art-${idSafe(s.name)}-${idx}`;",
+   "new": "const srid = `art-${s.name}-${idx}`;"
+  },
+  {
+   "name": "E8 Sterne-Id ungeschützt",
+   "file": "js/09-kuenstler.js",
+   "old": "id=\"sr-rp-${escapeHtml(name)}\"",
+   "new": "id=\"sr-rp-${name}\""
+  },
+  {
+   "name": "E9 Kommentar-Id ungeschützt",
+   "file": "js/08-zeilenaktionen.js",
+   "old": "id=\"comment-${escapeHtml(d.name)}\"",
+   "new": "id=\"comment-${d.name}\""
+  },
+  {
+   "name": "E10 Kommentar-Symbol-Id ungeschützt",
+   "file": "js/08-zeilenaktionen.js",
+   "old": "id=\"comment-icon-${escapeHtml(id)}\"",
+   "new": "id=\"comment-icon-${id}\""
+  },
+  {
+   "name": "E11 Soundreferenz ungeschützt",
+   "file": "js/08-zeilenaktionen.js",
+   "old": "${escapeHtml((r.referenz || []).join(' / '))}",
+   "new": "${(r.referenz || []).join(' / ')}"
+  },
+  {
+   "name": "E12 Soundreferenz-Kategorie ungeschützt",
+   "file": "js/08-zeilenaktionen.js",
+   "old": "${escapeHtml(r.kategorie || '')}",
+   "new": "${r.kategorie || ''}"
+  },
+  {
+   "name": "E13 jsArg ohne HTML-Escaping",
+   "file": "js/01-data.js",
+   "old": "  return escapeHtml(escJs(str));",
+   "new": "  return escJs(str);"
+  },
+  {
+   "name": "E14 escJs ohne Backslash-Behandlung",
+   "file": "js/01-data.js",
+   "old": "  return String(str).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\").replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\u2028/g, '\\\\u2028').replace(/\\u2029/g, '\\\\u2029');",
+   "new": "  return String(str).replace(/'/g, \"\\\\'\").replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\u2028/g, '\\\\u2028').replace(/\\u2029/g, '\\\\u2029');"
+  },
+  {
+   "name": "E15 safeUrl lässt alles durch",
+   "file": "js/01-data.js",
+   "old": "  return /^(javascript|data|vbscript):/i.test(v.replace(/[\\u0000-\\u0020]/g, '')) ? '' : v;",
+   "new": "  return v;"
+  },
+  {
+   "name": "E16 safeUrl ohne Leerraum-Bereinigung",
+   "file": "js/01-data.js",
+   "old": "test(v.replace(/[\\u0000-\\u0020]/g, ''))",
+   "new": "test(v)"
+  },
+  {
+   "name": "E17 idSafe ändert nichts",
+   "file": "js/01-data.js",
+   "old": "  return String(str).replace(/[^A-Za-z0-9-]/g, c => '_' + c.charCodeAt(0).toString(16) + '_');",
+   "new": "  return String(str);"
+  },
+  {
+   "name": "E18 escapeHtml ohne Anführungszeichen",
+   "file": "js/01-data.js",
+   "old": ".replace(/\"/g, '&quot;')",
+   "new": ""
+  },
+  {
+   "name": "E19 Programm-Zeile: Name ungeschützt",
+   "file": "js/14-programmliste.js",
+   "old": "${escapeHtml(a.name)}${anchorBadgeHTML",
+   "new": "${a.name}${anchorBadgeHTML"
+  },
+  {
+   "name": "E20 Programm-Zeile: Location ungeschützt",
+   "file": "js/14-programmliste.js",
+   "old": "${escapeHtml(a.location)}</a>` : `📍 ${escapeHtml(a.location)}`",
+   "new": "${a.location}</a>` : `📍 ${a.location}`"
+  },
+  {
+   "name": "E21 Act-Chips ungeschützt",
+   "file": "js/14-programmliste.js",
+   "old": ">${escapeHtml(n)}</span>` : `<span class=\"badge\"",
+   "new": ">${n}</span>` : `<span class=\"badge\""
+  },
+  {
+   "name": "E22 Tages-Überschrift ungeschützt",
+   "file": "js/14-programmliste.js",
+   "old": "<div class=\"prog-day-header\">${escapeHtml(a.day)}</div>",
+   "new": "<div class=\"prog-day-header\">${a.day}</div>"
+  },
+  {
+   "name": "E23 Programm-Detail: Link ohne safeUrl",
+   "file": "js/14-programmliste.js",
+   "old": "href=\"${escapeHtml(safeUrl(d.customUrl || d.rbfUrl))}\"",
+   "new": "href=\"${escapeHtml(d.customUrl || d.rbfUrl)}\""
+  },
+  {
+   "name": "E24 Terminliste: Location ungeschützt",
+   "file": "js/11-sprung.js",
+   "old": "${escapeHtml(x.location || 'TBA')}",
+   "new": "${x.location || 'TBA'}"
+  },
+  {
+   "name": "E25 Soundreferenz-Auswahl ungeschützt",
+   "file": "js/05-filter.js",
+   "old": "<option value=\"${escapeHtml(n)}\"${n === curSoundRef ? ' selected' : ''}>${escapeHtml(n)}</option>",
+   "new": "<option value=\"${n}\"${n === curSoundRef ? ' selected' : ''}>${n}</option>"
+  },
+  {
+   "name": "E26 Filter-Chip ungeschützt",
+   "file": "js/05-filter.js",
+   "old": "<span class=\"filter-chip\">${escapeHtml(v)}<span",
+   "new": "<span class=\"filter-chip\">${v}<span"
+  },
+  {
+   "name": "E27 Genre-Dialog-Zeile ungeschützt",
+   "file": "js/05-filter.js",
+   "old": "<div class=\"genre-check-label\">${escapeHtml(v)}</div>",
+   "new": "<div class=\"genre-check-label\">${v}</div>"
+  },
+  {
+   "name": "E28 Location-Dialog-Zeile ungeschützt",
+   "file": "js/12-filtermodals.js",
+   "old": "<div class=\"genre-check-label\">${escapeHtml(l)}</div>",
+   "new": "<div class=\"genre-check-label\">${l}</div>"
+  },
+  {
+   "name": "E29 Mini-Sterne-Id ungeschützt",
+   "file": "js/10-programm.js",
+   "old": "id=\"avg-mini-${escapeHtml(d.name)}\"",
+   "new": "id=\"avg-mini-${d.name}\""
+  },
+  {
+   "name": "E30 Herkunft-Auswahl ungeschützt",
+   "file": "js/05-filter.js",
+   "old": "map(h => `<option value=\"${escapeHtml(h)}\"${h === curHerkunft ? ' selected' : ''}>${escapeHtml(shortenHerkunft(h))}</option>`)",
+   "new": "map(h => `<option value=\"${h}\"${h === curHerkunft ? ' selected' : ''}>${shortenHerkunft(h)}</option>`)"
+  }
+ ]
+}
