@@ -17,8 +17,8 @@ let progRidsByName = {};
 function progDetailHTML(a, rid) {
   const d = dataMap[a.name];
   const skey = showKey(a);
-  const nj = escJs(a.name);
-  const skeyEsc = escJs(skey);
+  const nj = jsArg(a.name);
+  const skeyEsc = jsArg(skey);
   return `
       ${d ? `<div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
         <div class="prog-detail-pair"><span class="prog-detail-label">Promo</span><div class="stars stars-sm" id="${rid}-rp">${progStarsHTML(rid,a.name,'rp')}</div></div>
@@ -26,19 +26,19 @@ function progDetailHTML(a, rid) {
       </div>
       <div class="prog-detail-row" onclick="event.stopPropagation()"><span class="prog-detail-label">Gesehen</span>${seenButtonsHTML(a.name, d, rid)}</div>
       <div style="display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;margin-top:6px">
-        <a class="prog-detail-link" style="margin-top:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">↗ RBF-Seite öffnen</a>
+        <a class="prog-detail-link" style="margin-top:0" href="${escapeHtml(safeUrl(d.customUrl || d.rbfUrl))}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${jsArg(safeUrl(d.customUrl || d.rbfUrl))}')">↗ RBF-Seite öffnen</a>
         <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();runJump(()=>jumpToArtist('${nj}'))">👤 Zum Künstler</button>
         <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleHidden('${nj}')">${d.ausgeblendet ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
       </div>` : (a.isEvent ? `<div class="prog-detail-row">
-        <div class="detail-label">${a.kategorie === 'Musik' ? '🎵' : '🎪'} Sonderveranstaltung · ${a.kategorie}</div>
+        <div class="detail-label">${a.kategorie === 'Musik' ? '🎵' : '🎪'} Sonderveranstaltung · ${escapeHtml(a.kategorie)}</div>
         ${a.acts && a.acts.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${a.acts.map(n => {
           const dd = dataMap[n];
-          return dd ? `<span class="badge badge-link ${genderBadgeClass(dd.geschlecht)}" style="font-size:10px" role="button" title="Zum Künstler" onclick="event.stopPropagation();runJump(()=>jumpToArtist('${escJs(n)}'))">${n}</span>` : `<span class="badge" style="font-size:10px;background:var(--surface2);color:var(--text2)">${n}</span>`;
+          return dd ? `<span class="badge badge-link ${genderBadgeClass(dd.geschlecht)}" style="font-size:10px" role="button" title="Zum Künstler" onclick="event.stopPropagation();runJump(()=>jumpToArtist('${jsArg(n)}'))">${escapeHtml(n)}</span>` : `<span class="badge" style="font-size:10px;background:var(--surface2);color:var(--text2)">${escapeHtml(n)}</span>`;
         }).join('')}</div>` : ''}
       </div>
       <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
-        ${a.url ? `<a class="prog-detail-link" style="margin-top:0" href="${a.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${escJs(a.url)}')">↗ Veranstaltung öffnen</a>` : ''}
-        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleEventHidden('${escJs(a.nid)}')">${hiddenEvents[a.nid] ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
+        ${a.url ? `<a class="prog-detail-link" style="margin-top:0" href="${escapeHtml(safeUrl(a.url))}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();return openExternal(event,'${jsArg(safeUrl(a.url))}')">↗ Veranstaltung öffnen</a>` : ''}
+        <button type="button" class="prog-detail-link-btn" onclick="event.stopPropagation();toggleEventHidden('${jsArg(a.nid)}')">${hiddenEvents[a.nid] ? '👁 Einblenden' : '🙈 Ausblenden'}</button>
       </div>` : `<div class="prog-detail-row">Künstler nicht in der Liste gefunden.</div>`)}
       <div class="prog-detail-divider"></div>
       <div class="prog-detail-row prog-detail-row-split" onclick="event.stopPropagation()">
@@ -140,7 +140,7 @@ function progIsHidden(a, d) {
 }
 function progTimeColHTML(a, rid, skey) {
   return `<div class="prog-time-col">
-        <div class="prog-time-val">${a.time ? a.time + (a.endTime ? `<br><span style="opacity:.55;font-size:11px">–${a.endTime}</span>` : '') : '<span style="opacity:.55">TBA</span>'}</div>
+        <div class="prog-time-val">${a.time ? escapeHtml(a.time) + (a.endTime ? `<br><span style="opacity:.55;font-size:11px">–${escapeHtml(a.endTime)}</span>` : '') : '<span style="opacity:.55">TBA</span>'}</div>
         ${planFlagHTML(rid, skey)}
       </div>`;
 }
@@ -148,12 +148,12 @@ function progInfoHTML(a, d, rid, skey) {
   const gc = d ? genderBadgeClass(d.geschlecht) : '';
   const showRating = showRatings[skey] || 0;
   const duration = showDurations[skey];
-  const nj = escJs(a.name);
+  const nj = jsArg(a.name);
   const isHidden = progIsHidden(a, d);
   return `<div class="prog-info">
-        <div class="prog-name">${a.isEvent ? (a.kategorie === 'Musik' ? '🎵 ' : '🎪 ') : ''}${a.name}${anchorBadgeHTML(a.name, true)}${d ? ` <span class="badge ${gc}" style="font-size:9px">${d.geschlecht}</span>` : ''}${isHidden ? ' <span class="badge b-hidden" style="font-size:9px">🙈</span>' : ''}${commentIconHTML(a.name, nj, d, rid)}${soundRefIconHTML(a.name)}</div>
-        <div class="prog-meta">${d ? d.genre + ' · ' + d.herkunft : (a.isEvent ? `Sonderveranstaltung · ${a.kategorie}` : '')}</div>
-        <div class="prog-loc">${a.location ? (appSettings.showMapsLinks ? `📍 <a href="${mapsUrl(a.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(a.location)}')">${a.location}</a>` : `📍 ${a.location}`) : `📍 <span style="opacity:.6">TBA</span>`}</div>
+        <div class="prog-name">${a.isEvent ? (a.kategorie === 'Musik' ? '🎵 ' : '🎪 ') : ''}${escapeHtml(a.name)}${anchorBadgeHTML(a.name, true)}${d ? ` <span class="badge ${gc}" style="font-size:9px">${escapeHtml(d.geschlecht)}</span>` : ''}${isHidden ? ' <span class="badge b-hidden" style="font-size:9px">🙈</span>' : ''}${commentIconHTML(a.name, nj, d, rid)}${soundRefIconHTML(a.name)}</div>
+        <div class="prog-meta">${d ? escapeHtml(d.genre + ' · ' + d.herkunft) : (a.isEvent ? `Sonderveranstaltung · ${escapeHtml(a.kategorie)}` : '')}</div>
+        <div class="prog-loc">${a.location ? (appSettings.showMapsLinks ? `📍 <a href="${escapeHtml(mapsUrl(a.location))}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${jsArg(a.location)}')">${escapeHtml(a.location)}</a>` : `📍 ${escapeHtml(a.location)}`) : `📍 <span style="opacity:.6">TBA</span>`}</div>
         <div class="prog-show-meta-row" id="${rid}-showmetarow" style="${(showRating || duration !== undefined) ? '' : 'display:none'}">
           <div class="prog-showrating-summary" id="${rid}-showsummary" style="${showRating ? '' : 'display:none'}">${miniStarsShow(showRating)}</div>
           <div class="prog-duration-summary" id="${rid}-durationsummary" style="${duration !== undefined ? '' : 'display:none'}">${duration !== undefined ? `⏱ ${formatDuration(duration)}` : ''}</div>
@@ -213,7 +213,7 @@ function renderProgCoreImpl() {
   if (!filtered.length) { list.innerHTML = `<div class="prog-empty">Keine Auftritte für diese Filter.</div>`; saveFilterState(); return; }
   let html = '', lastDay = '';
   filtered.forEach((a, i) => {
-    if (a.day !== lastDay) { html += `<div class="prog-day-header">${a.day}</div>`; lastDay = a.day; }
+    if (a.day !== lastDay) { html += `<div class="prog-day-header">${escapeHtml(a.day)}</div>`; lastDay = a.day; }
     const rid = `progr-${i}`;
     registerProgRow(a, rid);
     html += progRowHTML(a, rid, visitedNames);

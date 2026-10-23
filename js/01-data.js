@@ -13,13 +13,41 @@ const LS_KEY = 'rbf2027_v1';
 function safeLog(...args) {
   try { (console.log || (() => {}))(...args); } catch (e) {}
 }
-// Escaped einen String für die sichere Einbettung in einfach gequotete
-// JS-String-Literale innerhalb von onclick-Attributen, z.B.
-// onclick="foo('${escJs(name)}')" - überall dort nötig, wo Künstlernamen,
-// Locations oder URLs (die selbst Apostrophe enthalten können, z.B. "Dov'è
-// Liana") in generiertes HTML eingebettet werden.
+// ── ESCAPING ─────────────────────────────────────────────────────────────────
+// Daten (Künstlernamen, Locations, Genres, Kommentare, Links ...) können Zeichen enthalten,
+// die in HTML/JS Sonderbedeutung haben (", ', <, >, &, \). Deshalb gilt überall, wo solche
+// Werte in generiertes HTML (innerHTML-Vorlagen) eingesetzt werden:
+//   Text und Attributwerte      ->  ${escapeHtml(wert)}
+//   JS-String in Inline-Handler ->  onclick="foo('${jsArg(wert)}')"
+//   Links (href)                ->  href="${escapeHtml(safeUrl(url))}"
+//   Ids aus Namen               ->  id="item-${escapeHtml(name)}"   (DOM-Id = roher Name,
+//                                   Suche per getElementById(`item-${name}`) bleibt möglich)
+//   Ids, die in einen JS-String fließen (Zeilen-Ids "rid")  ->  idSafe(name) (nur [A-Za-z0-9_-])
+// Zahlen, feste Texte und selbst erzeugte Ids brauchen kein Escaping.
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+// Escaped einen String für ein einfach gequotetes JS-String-Literal (Backslash, Apostroph,
+// Zeilenumbrüche). Für Inline-Handler-Attribute siehe jsArg.
 function escJs(str) {
-  return String(str).replace(/'/g, "\\'");
+  return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+// JS-String-Argument in einem Inline-Handler-ATTRIBUT (onclick="foo('${jsArg(x)}')"): erst als
+// JS-String maskieren, dann als HTML-Attributwert (der Browser entschlüsselt die Entities
+// wieder, bevor er den Handler-Code ausführt).
+function jsArg(str) {
+  return escapeHtml(escJs(str));
+}
+// Entschärft Links mit Skript-Schema (javascript:, data:, vbscript:) - leer statt Link.
+function safeUrl(u) {
+  const v = String(u == null ? '' : u);
+  // Browser ignorieren Leerraum/Steuerzeichen im Schema ("java\tscript:") - deshalb vor dem Prüfen entfernen
+  return /^(javascript|data|vbscript):/i.test(v.replace(/[\u0000-\u0020]/g, '')) ? '' : v;
+}
+// Ids, die in JS-Strings von Inline-Handlern landen: jedes Zeichen außer [A-Za-z0-9-] wird zu
+// _<hex>_ (eindeutig umkehrbar, auch "_" selbst).
+function idSafe(str) {
+  return String(str).replace(/[^A-Za-z0-9-]/g, c => '_' + c.charCodeAt(0).toString(16) + '_');
 }
 
 const MAX = 5;

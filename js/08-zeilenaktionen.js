@@ -45,23 +45,12 @@ function toggleReinhoeren(name) {
 }
 
 // ── KOMMENTAR ─────────────────────────────────────────────────────────────────
-// Escaped Text für die Einbettung in HTML-Attribute/Textarea-Inhalt (kein
-// vorhandener Helper dafür im Rest der App, daher hier lokal definiert).
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 let commentSaveTimers = {};
 function commentHTML(nj, d) {
   const val = d.kommentar || '';
   const len = val.length;
-  return `<textarea class="comment-textarea" id="comment-${nj}" maxlength="${MAX_COMMENT_LEN}" placeholder="Kurze Notiz zu diesem Künstler …" oninput="onCommentInput('${nj}')">${escapeHtml(val)}</textarea>
-    <div class="comment-count${len >= MAX_COMMENT_LEN ? ' comment-count-max' : ''}" id="comment-count-${nj}">${len}/${MAX_COMMENT_LEN}</div>`;
+  return `<textarea class="comment-textarea" id="comment-${escapeHtml(d.name)}" maxlength="${MAX_COMMENT_LEN}" placeholder="Kurze Notiz zu diesem Künstler …" oninput="onCommentInput('${nj}')">${escapeHtml(val)}</textarea>
+    <div class="comment-count${len >= MAX_COMMENT_LEN ? ' comment-count-max' : ''}" id="comment-count-${escapeHtml(d.name)}">${len}/${MAX_COMMENT_LEN}</div>`;
 }
 // Aktualisiert dataMap sofort (damit der Text nicht verloren geht, falls z.B.
 // zwischendurch der Tab gewechselt wird) und schreibt debounced in localStorage,
@@ -95,7 +84,7 @@ function onCommentInput(name) {
 function commentIconHTML(name, nj, d, idSuffix) {
   const has = !!(d && d.kommentar);
   const id = idSuffix || name;
-  return `<button type="button" class="comment-icon-btn" id="comment-icon-${id}" onclick="event.stopPropagation();openCommentModal('${nj}')" title="Kommentar anzeigen"${has ? '' : ' style="display:none"'}>💬</button>`;
+  return `<button type="button" class="comment-icon-btn" id="comment-icon-${escapeHtml(id)}" onclick="event.stopPropagation();openCommentModal('${nj}')" title="Kommentar anzeigen"${has ? '' : ' style="display:none"'}>💬</button>`;
 }
 function openCommentModal(name) {
   const d = dataMap[name];
@@ -120,7 +109,7 @@ function soundReferencesFor(name) {
 }
 function soundRefIconHTML(name) {
   if (!appSettings.showSoundRef || !soundReferencesFor(name).length) return '';
-  return `<button type="button" class="soundref-icon-btn" onclick="event.stopPropagation();openSoundRefModal('${escJs(name)}')" title="Klingt wie …">🔊</button>`;
+  return `<button type="button" class="soundref-icon-btn" onclick="event.stopPropagation();openSoundRefModal('${jsArg(name)}')" title="Klingt wie …">🔊</button>`;
 }
 // Blendet den Soundreferenz-Filter komplett aus (nicht nur seinen Inhalt),
 // wenn die Anzeige in den Settings deaktiviert ist - dann darf er auch nicht
@@ -135,8 +124,8 @@ function openSoundRefModal(name) {
   document.getElementById('soundRefModalTitle').textContent = name;
   document.getElementById('soundRefModalBody').innerHTML = refs.map(r => `
     <div class="soundref-entry">
-      <div class="soundref-name">🔊 Klingt wie: ${(r.referenz || []).join(' / ')}</div>
-      <div class="soundref-kategorie">${r.kategorie || ''}</div>
+      <div class="soundref-name">🔊 Klingt wie: ${escapeHtml((r.referenz || []).join(' / '))}</div>
+      <div class="soundref-kategorie">${escapeHtml(r.kategorie || '')}</div>
     </div>`).join('');
   openModal('soundRefModal');
 }
@@ -148,7 +137,7 @@ function openSoundRefModal(name) {
 // bereits escapte Name übergeben, was bei Namen mit Apostroph den nächsten
 // Klick auf "Gesehen"/"Bekannt" nach einem Neu-Zeichnen brechen konnte).
 function seenButtonsHTML(name, d, progRid) {
-  const nameEsc = escJs(name);
+  const nameEsc = jsArg(name);
   const handler = progRid ? `setSeenProg('${progRid}','${nameEsc}',` : `setSeen('${nameEsc}',`;
   return `<div class="seen-btns"${progRid ? ` id="${progRid}-seen"` : ''}>
     <button class="seen-btn${d.gesehen === 'bekannt' ? ' active-bekannt' : ''}" onclick="${handler}'bekannt')">👂 Bekannt</button>

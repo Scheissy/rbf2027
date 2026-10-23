@@ -168,7 +168,7 @@ function updateTagFilters() {
   const herkunftSel = document.getElementById('fHerkunft');
   const curHerkunft = herkunftSel.value;
   herkunftSel.innerHTML = `<option value="">Alle Herkünfte</option>` +
-    [...herkunftSet].sort((a, b) => a.localeCompare(b, 'de')).map(h => `<option value="${h}"${h === curHerkunft ? ' selected' : ''}>${shortenHerkunft(h)}</option>`).join('');
+    [...herkunftSet].sort((a, b) => a.localeCompare(b, 'de')).map(h => `<option value="${escapeHtml(h)}"${h === curHerkunft ? ' selected' : ''}>${escapeHtml(shortenHerkunft(h))}</option>`).join('');
   // Soundreferenz-Filter: Optionsliste kommt direkt aus SOUND_REFERENCES
   // (rbf-data.js), nicht aus dataMap - die Liste wächst unabhängig von den
   // Künstlerdaten selbst, daher hier bewusst eine eigene, dynamische
@@ -181,7 +181,7 @@ function updateTagFilters() {
       SOUND_REFERENCES.forEach(r => (r.referenz || []).forEach(n => refNames.add(n)));
     }
     soundRefSel.innerHTML = `<option value="">🔊 Referenz wählen</option>` +
-      [...refNames].sort((a, b) => a.localeCompare(b, 'de')).map(n => `<option value="${n}"${n === curSoundRef ? ' selected' : ''}>${n}</option>`).join('');
+      [...refNames].sort((a, b) => a.localeCompare(b, 'de')).map(n => `<option value="${escapeHtml(n)}"${n === curSoundRef ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
   }
 }
 // ── MEHRFACHAUSWAHL-FILTER (Genre, Location) ────────────────────────────────
@@ -202,10 +202,10 @@ function makeMultiSelectFilter(opts) {
     if (!options.length) { el.innerHTML = `<div style="color:var(--text2);font-size:13px">${emptyLabel}</div>`; return; }
     el.innerHTML = options.map(v => {
       const checked = selected.has(v);
-      const vj = escJs(v);
+      const vj = jsArg(v);
       return `<div class="genre-check-row${checked ? ' checked' : ''}" onclick="${toggleFnName}('${vj}')">
         <div class="genre-check-box">${checked ? '✓' : ''}</div>
-        <div class="genre-check-label">${v}</div>
+        <div class="genre-check-label">${escapeHtml(v)}</div>
       </div>`;
     }).join('');
   }
@@ -235,7 +235,7 @@ function makeMultiSelectFilter(opts) {
     if (!selected.size) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
     wrap.style.display = 'flex';
     const chips = [...selected].sort((a, b) => a.localeCompare(b, 'de'))
-      .map(v => `<span class="filter-chip">${v}<span class="filter-chip-x" onclick="${removeChipFnName}('${escJs(v)}')">✕</span></span>`).join('');
+      .map(v => `<span class="filter-chip">${escapeHtml(v)}<span class="filter-chip-x" onclick="${removeChipFnName}('${jsArg(v)}')">✕</span></span>`).join('');
     wrap.innerHTML = chips + (selected.size > 1 ? `<span class="filter-chip-reset" onclick="${resetFnName}()">Alle zurücksetzen</span>` : '');
   }
   function open() {

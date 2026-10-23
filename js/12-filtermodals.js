@@ -58,10 +58,10 @@ function renderLocManageModalList() {
   if (!locs.length) { el.innerHTML = '<div style="color:var(--text2);font-size:13px">Keine Locations vorhanden.</div>'; return; }
   el.innerHTML = locs.map(l => {
     const visible = !appSettings.hiddenLocations.includes(l);
-    const lj = escJs(l);
+    const lj = jsArg(l);
     return `<div class="genre-check-row${visible ? ' checked' : ''}" onclick="toggleLocVisibility('${lj}')">
       <div class="genre-check-box">${visible ? '✓' : ''}</div>
-      <div class="genre-check-label">${l}</div>
+      <div class="genre-check-label">${escapeHtml(l)}</div>
     </div>`;
   }).join('');
 }

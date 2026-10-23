@@ -14,7 +14,7 @@ function ratingStarsHTML(val, cssClass, onclickFor) {
 }
 function starsHTML(name, field) {
   const val = dataMap[name] ? dataMap[name][field] : 0;
-  const nj = escJs(name);
+  const nj = jsArg(name);
   return ratingStarsHTML(val, 'star', n => `setRating('${nj}','${field}',${n})`);
 }
 // Führt render() der Künstlerliste aus, ohne dass dabei die Scrollposition
@@ -142,14 +142,14 @@ function miniStars(val) {
 // angezeigt noch nach dem ersten Setzen geändert werden konnte.
 function progStarsHTML(rid, name, field) {
   const val = dataMap[name] ? dataMap[name][field] : 0;
-  const nameEsc = escJs(name);
+  const nameEsc = jsArg(name);
   return ratingStarsHTML(val, 'star', n => `setProgRating('${rid}','${nameEsc}','${field}',${n})`);
 }
 // Auftritts-Bewertung: eigenständige Sterne-Skala pro konkreter Show (nicht pro Künstler).
 // Fließt bewusst NICHT in dataMap/rp/rl bzw. den Bewertungsdurchschnitt ein.
 function progShowStarsHTML(rid, skey) {
   const val = showRatings[skey] || 0;
-  const keyEsc = escJs(skey);
+  const keyEsc = jsArg(skey);
   return ratingStarsHTML(val, 'star star-show', n => `setShowRating('${rid}','${keyEsc}',${n})`);
 }
 function miniStarsShow(val) {
@@ -214,7 +214,7 @@ function setShowRating(rid, skey, n) {
 // erscheint). Grau/gedimmt = nicht markiert, volle Farbe = markiert.
 function planFlagHTML(rid, skey) {
   const flagged = !!planFlags[skey];
-  return `<button type="button" class="plan-flag-btn${flagged ? ' active' : ''}" id="${rid}-planflag" data-skey="${escapeHtml(skey)}" onclick="event.stopPropagation();togglePlanFlag('${rid}','${escJs(skey)}')" title="${flagged ? 'Als Ziel markiert' : 'Als Ziel markieren'}">🎯</button>`;
+  return `<button type="button" class="plan-flag-btn${flagged ? ' active' : ''}" id="${rid}-planflag" data-skey="${escapeHtml(skey)}" onclick="event.stopPropagation();togglePlanFlag('${rid}','${jsArg(skey)}')" title="${flagged ? 'Als Ziel markiert' : 'Als Ziel markieren'}">🎯</button>`;
 }
 function togglePlanFlag(rid, skey) {
   const wasFlagged = !!planFlags[skey];

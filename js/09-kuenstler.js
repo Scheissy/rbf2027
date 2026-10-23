@@ -15,22 +15,22 @@ function artistRowHTML(d, name, nj, isExp, hasShows) {
   const gc = genderBadgeClass(d.geschlecht);
   return `<div class="artist-row${d.ausgeblendet ? ' artist-row-hidden' : ''}" onclick="toggleExpand('${nj}')">
     <div class="artist-expand">${hasShows ? (isExp ? '▾' : '▸') : '·'}</div>
-    <div class="artist-name">${d.name}${avgMiniStarsHTML(d)}</div>
+    <div class="artist-name">${escapeHtml(d.name)}${avgMiniStarsHTML(d)}</div>
     ${anchorBadgeHTML(d.name)}
     ${commentIconHTML(name, nj, d)}
     ${soundRefIconHTML(name)}
     ${d.ausgeblendet ? '<span class="badge b-hidden">🙈</span>' : ''}
     ${d.reinhoeren ? '<span class="badge b-reinhoeren">🎧</span>' : ''}
     ${planIconHTML(name)}
-    <div class="artist-country">${shortenHerkunft(d.herkunft)}</div>
-    <div class="badge ${gc}" title="${d.geschlecht}">${shortenGeschlecht(d.geschlecht)}</div>
+    <div class="artist-country">${escapeHtml(shortenHerkunft(d.herkunft))}</div>
+    <div class="badge ${gc}" title="${escapeHtml(d.geschlecht)}">${escapeHtml(shortenGeschlecht(d.geschlecht))}</div>
   </div>`;
 }
 function artistShowRowHTML(s, idx, nj) {
   const skey = showKey(s);
-  const srid = `art-${nj}-${idx}`;
-  const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${mapsUrl(s.location)}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${escJs(s.location)}')">${s.location}</a>` : s.location) : '<span style="opacity:.6">TBA</span>';
-  return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.day}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(skey)}'))">${s.time ? s.time + (s.endTime ? '–' + s.endTime : '') : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
+  const srid = `art-${idSafe(s.name)}-${idx}`;
+  const locHtml = s.location ? (appSettings.showMapsLinks ? `<a href="${escapeHtml(mapsUrl(s.location))}" target="_blank" rel="noopener noreferrer" onclick="return openMaps(event,'${jsArg(s.location)}')">${escapeHtml(s.location)}</a>` : escapeHtml(s.location)) : '<span style="opacity:.6">TBA</span>';
+  return `<div class="show-row">${planFlagHTML(srid, skey)}<div class="show-day show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${jsArg(skey)}'))">${escapeHtml(s.day)}</div><div class="show-time show-jump" role="button" title="Im Programm anzeigen" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${jsArg(skey)}'))">${s.time ? escapeHtml(s.time + (s.endTime ? '–' + s.endTime : '')) : '<span style="opacity:.6">TBA</span>'}</div><div class="show-loc">${locHtml}</div><div class="stars stars-sm" id="${srid}-show">${progShowStarsHTML(srid,skey)}</div></div>`;
 }
 function artistShowsHTML(nj, shows) {
   if (!shows.length) return '<div class="no-shows">Noch keine Auftrittsdaten</div>';
@@ -38,22 +38,22 @@ function artistShowsHTML(nj, shows) {
     .map((s, idx) => artistShowRowHTML(s, idx, nj)).join('');
 }
 function artistDetailHTML(d, name, nj, showsHtml) {
-  return `<div class="artist-detail" id="detail-${name}">
+  return `<div class="artist-detail" id="detail-${escapeHtml(name)}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
-        <div class="detail-genre">${d.genre}</div>
+        <div class="detail-genre">${escapeHtml(d.genre)}</div>
         <div class="detail-links">
-          <a class="detail-link" style="margin-top:0" href="${d.customUrl || d.rbfUrl}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${escJs(d.customUrl || d.rbfUrl)}')">${d.discogsUrl ? '↗ RBF' : '↗ RBF-Seite öffnen'}</a>
-          ${d.discogsUrl ? `<a class="detail-link detail-link-discogs" style="margin-top:0" href="${escapeHtml(d.discogsUrl)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${escapeHtml(escJs(d.discogsUrl))}')">↗ Discogs</a>` : ''}
+          <a class="detail-link" style="margin-top:0" href="${escapeHtml(safeUrl(d.customUrl || d.rbfUrl))}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${jsArg(safeUrl(d.customUrl || d.rbfUrl))}')">${d.discogsUrl ? '↗ RBF' : '↗ RBF-Seite öffnen'}</a>
+          ${d.discogsUrl ? `<a class="detail-link detail-link-discogs" style="margin-top:0" href="${escapeHtml(safeUrl(d.discogsUrl))}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(event,'${jsArg(d.discogsUrl)}')">↗ Discogs</a>` : ''}
         </div>
       </div>
       <div class="detail-section detail-ratings-row">
         <div class="detail-rating-col">
           <div class="detail-label">Rating Promo</div>
-          <div class="stars" id="sr-rp-${name}">${starsHTML(name,'rp')}</div>
+          <div class="stars" id="sr-rp-${escapeHtml(name)}">${starsHTML(name,'rp')}</div>
         </div>
         ${appSettings.showListening ? `<div class="detail-rating-col">
           <div class="detail-label">Rating Listening</div>
-          <div class="stars" id="sr-rl-${name}">${starsHTML(name,'rl')}</div>
+          <div class="stars" id="sr-rl-${escapeHtml(name)}">${starsHTML(name,'rl')}</div>
         </div>` : ''}
       </div>
       <div class="detail-section">
@@ -81,7 +81,7 @@ function renderArtistItem(name) {
   if (!container) return;
   const isExp = expandedRows.has(name);
   const shows = auftritte.filter(a => a.name === name);
-  const nj = escJs(name);
+  const nj = jsArg(name);
   let html = artistRowHTML(d, name, nj, isExp, shows.length > 0);
   if (isExp) html += artistDetailHTML(d, name, nj, artistShowsHTML(nj, shows));
   container.innerHTML = html;
@@ -110,7 +110,7 @@ function render() {
     saveFilterState();
     return;
   }
-  list.innerHTML = rows.map(d => `<div class="artist-item" id="item-${d.name}"></div>`).join('');
+  list.innerHTML = rows.map(d => `<div class="artist-item" id="item-${escapeHtml(d.name)}"></div>`).join('');
   rows.forEach(d => renderArtistItem(d.name));
   updateStats();
   saveFilterState();

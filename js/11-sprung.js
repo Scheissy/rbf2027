@@ -74,12 +74,12 @@ function termineInnerHTML(a) {
   const rows = list.map(x => {
     const k = showKey(x);
     const time = x.time ? x.time + (x.endTime ? '–' + x.endTime : '') : 'TBA';
-    if (k === curKey) return `<div class="prog-term current"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">◂ Dieser Termin</span></div>`;
+    if (k === curKey) return `<div class="prog-term current"><span class="t-day">${escapeHtml(x.day)}</span><span class="t-time">${escapeHtml(time)}</span><span class="t-loc">◂ Dieser Termin</span></div>`;
     const dur = showDurations[k] || 0, rat = showRatings[k] || 0;
     const icons = (planFlags[k] ? '<span title="Ziel">🎯</span>' : '')
       + (dur > 0 ? `<span>⏱ ${formatDuration(dur)}</span>` : '')
       + (rat > 0 ? miniStarsShow(rat) : '');
-    return `<div class="prog-term${isShowPast(x) ? ' past' : ''}" role="button" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${escJs(k)}', true))"><span class="t-day">${x.day}</span><span class="t-time">${time}</span><span class="t-loc">${x.location || 'TBA'}</span><span class="t-icons">${icons}</span></div>`;
+    return `<div class="prog-term${isShowPast(x) ? ' past' : ''}" role="button" onclick="event.stopPropagation();runJump(()=>jumpToProgShow('${jsArg(k)}', true))"><span class="t-day">${escapeHtml(x.day)}</span><span class="t-time">${escapeHtml(time)}</span><span class="t-loc">${escapeHtml(x.location || 'TBA')}</span><span class="t-icons">${icons}</span></div>`;
   }).join('');
   return rows;
 }
@@ -493,7 +493,7 @@ function openLocFilterInfoModal() {
   const list = document.getElementById('locFilterInfoSelectionList');
   if (section && list) {
     if (selectedLocs.size > 0) {
-      list.innerHTML = [...selectedLocs].sort().map(l => `<span class="badge" style="font-size:11px">${l}</span>`).join('');
+      list.innerHTML = [...selectedLocs].sort().map(l => `<span class="badge" style="font-size:11px">${escapeHtml(l)}</span>`).join('');
       section.style.display = 'block';
     } else {
       list.innerHTML = '';

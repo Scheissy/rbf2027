@@ -167,9 +167,9 @@ function avgRating(d) {
 // zu rendern.
 function avgMiniStarsHTML(d) {
   const vals = [d.rp, d.rl].filter(v => v > 0);
-  if (!vals.length) return `<span class="artist-avg-stars" id="avg-mini-${d.name}" style="display:none"></span>`;
+  if (!vals.length) return `<span class="artist-avg-stars" id="avg-mini-${escapeHtml(d.name)}" style="display:none"></span>`;
   const avg = vals.reduce((x, y) => x + y, 0) / vals.length;
-  return `<span class="artist-avg-stars" id="avg-mini-${d.name}" title="Ø ${avg.toFixed(1)}">${miniStars(avg)}</span>`;
+  return `<span class="artist-avg-stars" id="avg-mini-${escapeHtml(d.name)}" title="Ø ${avg.toFixed(1)}">${miniStars(avg)}</span>`;
 }
 
 // Klickbares Sterne-Widget für den Mindestbewertungs-Filter im Programm.
