@@ -5,6 +5,7 @@ const { createHelpers, loadApp, createChecker } = require('./test-helpers');
   const H = createHelpers(w, d);
   const { ev, progRow: row, ridOf } = H;
   const t = createChecker();
+  ev("appSettings.termineMode = 'all';");   // dieser Test prüft die Variante "alle Termine" (der Standard ist "nur zukünftige", siehe test_termine_mode.js)
 
   const setDays = days => d.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', days.includes(b.dataset.day)));
   const allDays = () => [...d.querySelectorAll('.day-btn')].map(b => b.dataset.day);

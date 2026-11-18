@@ -357,6 +357,17 @@
       </label>
       <label class="settings-toggle-row">
         <div class="settings-toggle-text">
+          <div class="settings-toggle-label">📅 Weitere Termine</div>
+          <div class="settings-toggle-desc">Terminliste in der Programm-Detailansicht und 📅-Hinweis in der Zeile</div>
+        </div>
+        <select class="settings-select" id="settingTermineMode" onchange="setTermineSetting(this.value)">
+          <option value="off">Aus</option>
+          <option value="future">Nur zukünftige</option>
+          <option value="all">Alle</option>
+        </select>
+      </label>
+      <label class="settings-toggle-row">
+        <div class="settings-toggle-text">
           <div class="settings-toggle-label">💾 Filter-Persistenz</div>
           <div class="settings-toggle-desc">Filter-Einstellungen (Künstler- & Programm-Übersicht) über Neustarts hinweg merken</div>
         </div>

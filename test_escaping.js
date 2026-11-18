@@ -8,6 +8,7 @@ const { createHelpers, loadApp, createChecker } = require('./test-helpers');
   const H = createHelpers(w, d);
   const { ev } = H;
   const t = createChecker();
+  ev("appSettings.termineMode = 'all';");   // Terminliste mit allen Terminen (Standard wäre nur zukünftige)
 
   const NAME = `Evil "A" <img id="pwn1" src=x onerror="window.__pwned=1"> & 'B' \\ end`;
   const LOC = `Loc <b id="pwn2">x</b> "q" 'a' & \\`;

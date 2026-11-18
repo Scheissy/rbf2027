@@ -1,0 +1,127 @@
+{
+ "tests": [
+  "test_termine_mode.js"
+ ],
+ "mutations": [
+  {
+   "name": "T1 Standard ist 'alle' statt 'nur zukünftige'",
+   "file": "js/01-data.js",
+   "old": "termineMode: 'future' };",
+   "new": "termineMode: 'all' };"
+  },
+  {
+   "name": "T2 Rückfall bei ungültigem Wert auf 'alle'",
+   "file": "js/11-sprung.js",
+   "old": "TERMINE_MODES.includes(appSettings.termineMode) ? appSettings.termineMode : 'future';",
+   "new": "TERMINE_MODES.includes(appSettings.termineMode) ? appSettings.termineMode : 'all';"
+  },
+  {
+   "name": "T3 Modus 'alle' fehlt in der Werteliste",
+   "file": "js/11-sprung.js",
+   "old": "const TERMINE_MODES = ['off', 'future', 'all'];",
+   "new": "const TERMINE_MODES = ['off', 'future'];"
+  },
+  {
+   "name": "T4 Modus 'aus': Terminliste trotzdem gebaut",
+   "file": "js/11-sprung.js",
+   "old": "if (mode === 'off' || a.isEvent) return [];",
+   "new": "if (a.isEvent) return [];"
+  },
+  {
+   "name": "T5 Modus 'aus': 📅-Hinweis trotzdem gezeigt",
+   "file": "js/11-sprung.js",
+   "old": "if (a.isEvent || mode === 'off') return false;",
+   "new": "if (a.isEvent) return false;"
+  },
+  {
+   "name": "T6 'nur zukünftige': eigener Termin steht in der Liste",
+   "file": "js/11-sprung.js",
+   "old": "return list.filter(x => showKey(x) !== curKey && !isShowPast(x));",
+   "new": "return list.filter(x => !isShowPast(x));"
+  },
+  {
+   "name": "T7 'nur zukünftige': vergangene Termine stehen in der Liste",
+   "file": "js/11-sprung.js",
+   "old": "return list.filter(x => showKey(x) !== curKey && !isShowPast(x));",
+   "new": "return list.filter(x => showKey(x) !== curKey);"
+  },
+  {
+   "name": "T8 'alle': eigener Termin fehlt",
+   "file": "js/11-sprung.js",
+   "old": "if (mode === 'all') return list;",
+   "new": "if (mode === 'all') return list.filter(x => showKey(x) !== showKey(a));"
+  },
+  {
+   "name": "T9 Hinweis im Modus 'nur zukünftige' zählt auch vorbei gelegene spätere Termine",
+   "file": "js/11-sprung.js",
+   "old": "return mode === 'future' ? later.some(x => !isShowPast(x)) : later.length > 0;",
+   "new": "return later.length > 0;"
+  },
+  {
+   "name": "T10 Kopfzeile zählt alle Termine statt der aufgelisteten",
+   "file": "js/11-sprung.js",
+   "old": "(${termineShows(a).length})`;\n}",
+   "new": "(${artistShowsSorted(a.name).length})`;\n}"
+  },
+  {
+   "name": "T11 Live-Aktualisierung: Zähler der Kopfzeile bleibt alt",
+   "file": "js/11-sprung.js",
+   "old": "    if (cnt && a) cnt.textContent = termineHeadText(a);\n",
+   "new": ""
+  },
+  {
+   "name": "T12 Einstellung wird nicht gespeichert",
+   "file": "js/11-sprung.js",
+   "old": "appSettings.termineMode = TERMINE_MODES.includes(val) ? val : 'future';\n  saveToStorage();",
+   "new": "appSettings.termineMode = TERMINE_MODES.includes(val) ? val : 'future';"
+  },
+  {
+   "name": "T13 Auswahl zeigt nach Neustart nicht den gespeicherten Wert",
+   "file": "js/10-programm.js",
+   "old": "  document.getElementById('settingTermineMode').value = termineMode();\n",
+   "new": ""
+  },
+  {
+   "name": "T14 Ungültiger Wert wird unverändert gespeichert",
+   "file": "js/11-sprung.js",
+   "old": "appSettings.termineMode = TERMINE_MODES.includes(val) ? val : 'future';",
+   "new": "appSettings.termineMode = val;"
+  },
+  {
+   "name": "T15 Auswahl in den Settings: Option 'Nur zukünftige' fehlt",
+   "file": "index.html",
+   "old": "          <option value=\"future\">Nur zukünftige</option>\n",
+   "new": ""
+  },
+  {
+   "name": "T16 Auswahl ruft die Einstellung nicht auf",
+   "file": "index.html",
+   "old": "onchange=\"setTermineSetting(this.value)\"",
+   "new": "onchange=\"\""
+  },
+  {
+   "name": "T17 Sonderveranstaltung bekommt eine Terminliste",
+   "file": "js/11-sprung.js",
+   "old": "if (mode === 'off' || a.isEvent) return [];",
+   "new": "if (mode === 'off') return [];"
+  },
+  {
+   "name": "T18 Überschrift im Modus 'nur zukünftige' heißt nur \"Termine\"",
+   "file": "js/11-sprung.js",
+   "old": "termineMode() === 'future' ? 'Kommende Termine' : 'Termine'",
+   "new": "'Termine'"
+  },
+  {
+   "name": "T19 Überschrift heißt immer \"Kommende Termine\" (auch bei 'alle')",
+   "file": "js/11-sprung.js",
+   "old": "termineMode() === 'future' ? 'Kommende Termine' : 'Termine'",
+   "new": "'Kommende Termine'"
+  },
+  {
+   "name": "T20 Live-Aktualisierung schreibt die Überschrift ohne \"Kommende\"",
+   "file": "js/11-sprung.js",
+   "old": "cnt.textContent = termineHeadText(a);",
+   "new": "cnt.textContent = `Termine (${termineShows(a).length})`;"
+  }
+ ]
+}
