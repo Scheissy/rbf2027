@@ -44,13 +44,42 @@ function artistShowsSorted(name) {
   }
   return _showsByName.get(name) || [];
 }
+// Einstellung "Weitere Termine" (Settings-Tab, appSettings.termineMode):
+// 'off' = weder Terminliste noch 📅-Hinweis, 'future' = nur noch bevorstehende
+// Termine (der eigene nicht, vorbei gelegene nicht), 'all' = alle Termine samt
+// "Dieser Termin" (so war es vorher). Ungültige gespeicherte Werte fallen auf
+// den Standard 'future' zurück.
+const TERMINE_MODES = ['off', 'future', 'all'];
+function termineMode() {
+  return TERMINE_MODES.includes(appSettings.termineMode) ? appSettings.termineMode : 'future';
+}
+function setTermineSetting(val) {
+  appSettings.termineMode = TERMINE_MODES.includes(val) ? val : 'future';
+  saveToStorage();   // zählt stateVersion hoch und ändert appSettings: die Programm-Liste baut sich beim nächsten Besuch neu auf
+}
+// Die Termine, die in der Terminliste dieses Eintrags stehen (je nach Einstellung);
+// leer = keine Terminliste. Sonderveranstaltungen und Einzeltermine haben nie eine.
+function termineShows(a) {
+  const mode = termineMode();
+  if (mode === 'off' || a.isEvent) return [];
+  const list = artistShowsSorted(a.name);
+  if (list.length < 2) return [];
+  if (mode === 'all') return list;
+  const curKey = showKey(a);
+  return list.filter(x => showKey(x) !== curKey && !isShowPast(x));
+}
 // true, wenn der Künstler NACH diesem Termin noch mindestens einen weiteren hat
-// (beim letzten/einzigen Termin und bei Sonderveranstaltungen: false).
+// (beim letzten/einzigen Termin und bei Sonderveranstaltungen: false). Im Modus
+// 'future' zählt nur ein noch nicht vorbei gelegener späterer Termin, bei 'off'
+// gibt es keinen Hinweis.
 function hasLaterShow(a) {
-  if (a.isEvent) return false;
+  const mode = termineMode();
+  if (a.isEvent || mode === 'off') return false;
   const list = artistShowsSorted(a.name), k = showKey(a);
   const idx = list.findIndex(x => showKey(x) === k);
-  return idx >= 0 && idx < list.length - 1;
+  if (idx < 0) return false;
+  const later = list.slice(idx + 1);
+  return mode === 'future' ? later.some(x => !isShowPast(x)) : later.length > 0;
 }
 // Termin bereits vorbei (Europe/Berlin, Nachtprogramm zählt noch zum Vortag)?
 // Nur WÄHREND des Festivals - davor/danach wird bewusst nichts als vorbei
@@ -68,8 +97,8 @@ function isShowPast(a) {
 }
 let progEntryByRid = {};
 function termineInnerHTML(a) {
-  const list = artistShowsSorted(a.name);
-  if (a.isEvent || list.length < 2) return '';
+  const list = termineShows(a);
+  if (!list.length) return '';
   const curKey = showKey(a);
   const rows = list.map(x => {
     const k = showKey(x);
@@ -83,6 +112,10 @@ function termineInnerHTML(a) {
   }).join('');
   return rows;
 }
+// Überschrift der Terminliste: im Modus 'nur zukünftige' "Kommende Termine (n)", sonst "Termine (n)".
+function termineHeadText(a) {
+  return `${termineMode() === 'future' ? 'Kommende Termine' : 'Termine'} (${termineShows(a).length})`;
+}
 // Die Terminliste ist standardmäßig ZUGEKLAPPT (nur Kopfzeile "Termine (3) ▸"):
 // sie wird nicht immer gebraucht und nähme sonst in jeder aufgeklappten Zeile
 // Platz weg. Das Auf-/Zuklappen betrifft nur diesen Abschnitt - die Zeile selbst
@@ -90,8 +123,7 @@ function termineInnerHTML(a) {
 function termineSectionHTML(a, rid) {
   const inner = termineInnerHTML(a);
   if (!inner) return '';
-  const n = artistShowsSorted(a.name).length;
-  return `<div class="prog-terms" id="${rid}-terms" onclick="event.stopPropagation()"><div class="prog-terms-head" role="button" aria-expanded="false" onclick="toggleTermine('${rid}')"><span>Termine (${n})</span><span class="prog-terms-arrow">▸</span></div><div class="prog-terms-body" id="${rid}-termsbody">${inner}</div></div>`;
+  return `<div class="prog-terms" id="${rid}-terms" onclick="event.stopPropagation()"><div class="prog-terms-head" role="button" aria-expanded="false" onclick="toggleTermine('${rid}')"><span>${termineHeadText(a)}</span><span class="prog-terms-arrow">▸</span></div><div class="prog-terms-body" id="${rid}-termsbody">${inner}</div></div>`;
 }
 function toggleTermine(rid, force) {
   const el = document.getElementById(`${rid}-terms`);
@@ -111,6 +143,8 @@ function refreshTermineLists(skey) {
   (progRidsByName[entry.name] || []).forEach(r => {
     const el = document.getElementById(`${r}-termsbody`), a = progEntryByRid[r];
     if (el && a) el.innerHTML = termineInnerHTML(a);   // nur den Inhalt: Auf-/Zu-Zustand bleibt erhalten
+    const cnt = document.querySelector(`#${r}-terms .prog-terms-head span`);
+    if (cnt && a) cnt.textContent = termineHeadText(a);
   });
 }
 

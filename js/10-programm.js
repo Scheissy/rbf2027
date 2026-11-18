@@ -55,6 +55,7 @@ function applySettingsUI() {
   document.getElementById('settingShowRbfEvents').checked = appSettings.showRbfEvents;
   document.getElementById('settingDurationInputMode').value = durationInputMode();
   document.getElementById('settingBackChipMode').value = backChipMode();
+  document.getElementById('settingTermineMode').value = termineMode();
   const secSel = document.getElementById('settingBackChipSeconds');
   // Eine nicht in der Liste vorhandene (z. B. importierte) Dauer wird als eigene Option ergänzt
   if (![...secSel.options].some(o => Number(o.value) === backChipSeconds())) {

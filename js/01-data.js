@@ -149,7 +149,7 @@ let statsAusgeblendetFilter = false;
 // lebt jetzt rein hier, gesetzt/zurückgesetzt über filterByStat().
 let kuenstlerSeenFilter = '';
 // Anzeige-Einstellungen (Settings-Tab), geräteweise in localStorage gespeichert
-let appSettings = { showMapsLinks: true, showListening: true, showSoundRef: true, hiddenLocations: [], persistFilters: true, showMusicEvents: true, showOtherEvents: true, progFiltersExpanded: false, showRbfEvents: true, auswertungSort: 'count', backChipMode: 'time', backChipSeconds: 15, durationInputMode: 'minutes' };
+let appSettings = { showMapsLinks: true, showListening: true, showSoundRef: true, hiddenLocations: [], persistFilters: true, showMusicEvents: true, showOtherEvents: true, progFiltersExpanded: false, showRbfEvents: true, auswertungSort: 'count', backChipMode: 'time', backChipSeconds: 15, durationInputMode: 'minutes', termineMode: 'future' };
 let selectedGenres = new Set(); // Mehrfachauswahl im Genre-Filter (leer = alle)
 let selectedLocs = new Set(); // Mehrfachauswahl im Location-Filter der Programm-Übersicht (leer = alle)
 // Eigener Genre-Mehrfachfilter für die Programm-Übersicht - analog zum
