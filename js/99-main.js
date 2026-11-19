@@ -4,7 +4,7 @@
 
 // Prüft zuerst, ob alle Teile geladen wurden (z. B. nach einem unvollständigen Update oder bei
 // fehlender Datei im Offline-Cache) und warnt sichtbar, statt mit kryptischen Fehlern zu starten.
-const RBF_EXPECTED_PARTS = ["01-data", "02-storage", "03-auswertung", "04-wegstrecke", "05-filter", "06-bewertung", "07-dauer", "08-zeilenaktionen", "09-kuenstler", "10-programm", "11-sprung", "12-filtermodals", "13-install", "14-programmliste", "15-export", "99-main"];
+const RBF_EXPECTED_PARTS = ["01-data", "02-storage", "03-auswertung", "04-wegstrecke", "05-filter", "06-bewertung", "07-dauer", "08-zeilenaktionen", "09-kuenstler", "10-programm", "11-sprung", "12-filtermodals", "13-install", "14-programmliste", "15-export", "16-validierung", "99-main"];
 function checkAppParts(expected) {
   const loaded = window.RBF_PARTS || [];
   const missing = expected.filter(p => !loaded.includes(p));
