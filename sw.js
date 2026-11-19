@@ -1,4 +1,4 @@
-const CACHE = 'rbf2027-v2';
+const CACHE = 'rbf2027-v3';
 // Die App besteht aus index.html + css/app.css + den Skripten js/*.js (Reihenfolge wie in
 // index.html). Jede neue Datei hier eintragen - test_split_files.js prüft das.
 const ASSETS = [
@@ -19,6 +19,7 @@ const ASSETS = [
   './js/13-install.js',
   './js/14-programmliste.js',
   './js/15-export.js',
+  './js/16-validierung.js',
   './js/99-main.js',
   './rbf-data.js',
   './rbf-walk.js',

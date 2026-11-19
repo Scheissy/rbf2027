@@ -31,8 +31,6 @@ const VENUE_LOCATIONS = {
   'Knust': { lat: ${COORDS.Knust.lat}, lng: ${COORDS.Knust.lng} },
 };
 const ANCHOR_AWARD_NOMINEES = []; const SOUND_REFERENCES = []; const RBF_EVENTS = [];
-let lastAutoFixes = []; let lastValidationIssues = [];
-function autoFixAuftritte() {} function validateAuftritte() {} function updateValidationPanel() {}
 `;
 // Fußweg-Matrix deckt bewusst NICHT "Knust" ab - jede Strecke von/zu Knust
 // fällt auf Luftlinie zurück, alle anderen nutzen die (hier identischen)

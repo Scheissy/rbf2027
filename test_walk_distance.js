@@ -31,8 +31,6 @@ const VENUE_LOCATIONS = {
   'Nur Adresse': { address: 'Heiligengeistfeld, 20359 Hamburg' },
 };
 const ANCHOR_AWARD_NOMINEES = []; const SOUND_REFERENCES = []; const RBF_EVENTS = [];
-let lastAutoFixes = []; let lastValidationIssues = [];
-function autoFixAuftritte() {} function validateAuftritte() {} function updateValidationPanel() {}
 `;
 
 // Unabhängige Referenz-Implementierung (nicht die der App!).

@@ -1,0 +1,181 @@
+{
+ "tests": [
+  "test_validation.js"
+ ],
+ "mutations": [
+  {
+   "name": "V1 Unbekannter Tag wird nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (!DAY_ORDER.includes(a.day)) issues.push",
+   "new": "if (false) issues.push"
+  },
+  {
+   "name": "V2 Fehlender Künstler wird nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (!dataMap[a.name]) issues.push",
+   "new": "if (false) issues.push"
+  },
+  {
+   "name": "V3 Ungültige Startzeit wird nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (a.time && !/^\\d{2}:\\d{2}$/.test(a.time)) issues.push",
+   "new": "if (false) issues.push"
+  },
+  {
+   "name": "V4 Ungültige Endzeit wird nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (a.endTime && !/^\\d{2}:\\d{2}$/.test(a.endTime)) issues.push",
+   "new": "if (false) issues.push"
+  },
+  {
+   "name": "V5 Location-Leerzeichen werden nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "a.location !== a.location.trim()) issues.push(`Location mit",
+   "new": "false) issues.push(`Location mit"
+  },
+  {
+   "name": "V6 Location ohne Maps-Eintrag wird nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (a.location && !VENUE_LOCATIONS[a.location]) issues.push",
+   "new": "if (false) issues.push"
+  },
+  {
+   "name": "V7 Endzeit = Startzeit wird nicht gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (e <= s) issues.push",
+   "new": "if (e < s) issues.push"
+  },
+  {
+   "name": "V8 Dauer genau 3 h wird gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "else if (e - s > 180)",
+   "new": "else if (e - s >= 180)"
+  },
+  {
+   "name": "V9 Zu lange Show erst ab 4 h gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "else if (e - s > 180)",
+   "new": "else if (e - s > 240)"
+  },
+  {
+   "name": "V10 Exaktes Duplikat erst ab drei Stück gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (count > 1) issues.push(`Exaktes Duplikat",
+   "new": "if (count > 2) issues.push(`Exaktes Duplikat"
+  },
+  {
+   "name": "V11 Gleichzeitig an zwei Orten erst ab drei Orten gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (locs.size > 1) issues.push",
+   "new": "if (locs.size > 2) issues.push"
+  },
+  {
+   "name": "V12 Zwei Künstler am selben Ort erst ab drei gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (names.size > 1) issues.push",
+   "new": "if (names.size > 2) issues.push"
+  },
+  {
+   "name": "V13 Ohne Ort wird trotzdem auf gleichzeitige Künstler geprüft",
+   "file": "js/16-validierung.js",
+   "old": "      if (a.location) {\n        const tlKey",
+   "new": "      if (true) {\n        const tlKey"
+  },
+  {
+   "name": "V14 Auftritte ohne Uhrzeit werden auf Gleichzeitigkeit geprüft",
+   "file": "js/16-validierung.js",
+   "old": "    if (a.time) {\n      const adtKey",
+   "new": "    if (true) {\n      const adtKey"
+  },
+  {
+   "name": "V15 Anschluss ohne Pause gilt als Überlappung",
+   "file": "js/16-validierung.js",
+   "old": "timeSortValue(timed[i].endTime || timed[i].time) > timeSortValue(timed[i + 1].time)",
+   "new": "timeSortValue(timed[i].endTime || timed[i].time) >= timeSortValue(timed[i + 1].time)"
+  },
+  {
+   "name": "V16 Überlappung wird nie gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "timeSortValue(timed[i].endTime || timed[i].time) > timeSortValue(timed[i + 1].time)",
+   "new": "false"
+  },
+  {
+   "name": "V17 Überlappung erst ab drei Auftritten am Tag geprüft",
+   "file": "js/16-validierung.js",
+   "old": "if (shows.length < 2) return;",
+   "new": "if (shows.length < 3) return;"
+  },
+  {
+   "name": "V19 Viele Auftritte erst ab fünf gemeldet",
+   "file": "js/16-validierung.js",
+   "old": "if (count > 3) issues.push",
+   "new": "if (count > 4) issues.push"
+  },
+  {
+   "name": "V20 silent=true meldet trotzdem",
+   "file": "js/16-validierung.js",
+   "old": "if (issues.length) {\n    if (!silent) {",
+   "new": "if (issues.length) {\n    if (true) {"
+  },
+  {
+   "name": "V21 silent=true meldet bei sauberen Daten trotzdem",
+   "file": "js/16-validierung.js",
+   "old": "  } else {\n    if (!silent) {",
+   "new": "  } else {\n    if (true) {"
+  },
+  {
+   "name": "V22 Meldungen werden nicht in lastValidationIssues gemerkt",
+   "file": "js/16-validierung.js",
+   "old": "  lastValidationIssues = issues;\n",
+   "new": ""
+  },
+  {
+   "name": "V23 Auto-Fix trimmt die Location nicht",
+   "file": "js/16-validierung.js",
+   "old": "      a.location = a.location.trim();\n",
+   "new": ""
+  },
+  {
+   "name": "V24 Auto-Fix erkennt Duplikate nicht über die nid",
+   "file": "js/16-validierung.js",
+   "old": "a.nid !== undefined && a.nid !== null ? `nid:${a.nid}` :",
+   "new": "false ? `nid:${a.nid}` :"
+  },
+  {
+   "name": "V25 Auto-Fix übernimmt die bereinigte Liste nicht",
+   "file": "js/16-validierung.js",
+   "old": "  auftritte = deduped;\n",
+   "new": ""
+  },
+  {
+   "name": "V26 Auto-Fix merkt sich die Korrekturen nicht",
+   "file": "js/16-validierung.js",
+   "old": "  lastAutoFixes = fixes;\n",
+   "new": ""
+  },
+  {
+   "name": "V27 Auto-Fix loggt auch ohne Korrektur",
+   "file": "js/16-validierung.js",
+   "old": "if (fixes.length) safeLog(",
+   "new": "if (true) safeLog("
+  },
+  {
+   "name": "V28 Panel zeigt Ohne-Befund-Text bei Meldungen",
+   "file": "js/16-validierung.js",
+   "old": "  if (!lastValidationIssues.length) {\n    html +=",
+   "new": "  if (lastValidationIssues.length) {\n    html +="
+  },
+  {
+   "name": "V29 Panel zeigt die Korrekturen nicht",
+   "file": "js/16-validierung.js",
+   "old": "  if (lastAutoFixes.length) {\n    html +=",
+   "new": "  if (false) {\n    html +="
+  },
+  {
+   "name": "V30 Auto-Fix aktualisiert das Panel nicht",
+   "file": "js/16-validierung.js",
+   "old": "  lastAutoFixes = fixes;\n  updateValidationPanel();\n",
+   "new": "  lastAutoFixes = fixes;\n"
+  }
+ ]
+}

@@ -16,8 +16,6 @@ function buildDataScript(name) {
     const ANCHOR_AWARD_NOMINEES = [];
     const SOUND_REFERENCES = [];
     const RBF_EVENTS = [];
-    let lastAutoFixes = []; let lastValidationIssues = [];
-    function autoFixAuftritte() {} function validateAuftritte() {} function updateValidationPanel() {}
   `;
 }
 
@@ -58,8 +56,6 @@ function buildDataScript(name) {
       ];
       const RAW_AUFTRITTE = []; const VENUE_LOCATIONS = {};
       const ANCHOR_AWARD_NOMINEES = []; const SOUND_REFERENCES = []; const RBF_EVENTS = [];
-      let lastAutoFixes = []; let lastValidationIssues = [];
-      function autoFixAuftritte() {} function validateAuftritte() {} function updateValidationPanel() {}
     `;
     const { window: w } = await loadApp({ dataScript: dataScriptAmbiguous });
     // Ein alter, verwaister Eintrag mit abweichender Schreibweise, die zu

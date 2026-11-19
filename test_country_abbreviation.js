@@ -20,11 +20,6 @@ const VENUE_LOCATIONS = { 'Docks': { lat: 1, lng: 1 } };
 const ANCHOR_AWARD_NOMINEES = [];
 const SOUND_REFERENCES = [];
 const RBF_EVENTS = [];
-let lastAutoFixes = [];
-let lastValidationIssues = [];
-function autoFixAuftritte() {}
-function validateAuftritte() {}
-function updateValidationPanel() {}
 `;
 
 (async () => {
