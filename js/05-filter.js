@@ -42,9 +42,11 @@ function anchorBadgeHTML(name, small) {
   if (!isAnchorNominee(name)) return '';
   return ` <span class="badge b-anchor"${small ? ' style="font-size:9px"' : ''} title="Anchor Award Nominierung">⚓</span>`;
 }
-// Zerlegt Werte wie "Pop / Rock" oder "USA / UK" in einzelne, getrimmte Teile
+// Zerlegt Werte wie "Pop / Rock" oder "USA / UK" in einzelne, getrimmte Teile.
+// Trenner ist ein Schrägstrich MIT Leerzeichen drumherum: ein Schrägstrich ohne Leerzeichen gehört
+// zum Namen selbst (Genres wie "Hip-Hop/Rap", "Electronic/Live", "R'n'B/Soul" sind EIN Wert).
 function splitTags(val) {
-  return (val || '').split('/').map(s => s.trim()).filter(Boolean);
+  return (val || '').split(/\s+\/\s+/).map(s => s.trim()).filter(Boolean);
 }
 
 // Kurzformen für die Geschlecht-Badge in der Künstler-Übersicht: "m" allein
