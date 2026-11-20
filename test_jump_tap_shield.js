@@ -66,8 +66,10 @@ const { createHelpers, loadApp, createChecker } = require('./test-helpers');
   t.check('Danach ist alles wieder frei.', !shieldOn() && !busy());
 
   // ───────── 5) Weitere Einstiegspunkte nutzen den Tap-Schutz ─────────
-  const artistBtn = d.getElementById(`${rid}-detail`).innerHTML;
-  t.check('"👤 Zum Künstler" läuft über runJump.', /runJump\(\(\)=>jumpToArtist\(/.test(artistBtn));
+  // Das onclick-Attribut direkt aus dem DOM lesen (nicht aus innerHTML: dessen Serialisierung maskiert ">" je nach jsdom-Version als "&gt;")
+  const artistBtn = [...d.getElementById(`${rid}-detail`).querySelectorAll('button')].find(b => b.textContent.includes('Zum Künstler'));
+  const artistOnclick = artistBtn ? artistBtn.getAttribute('onclick') : '';
+  t.check('"👤 Zum Künstler" läuft über runJump.', /runJump\(\(\)=>jumpToArtist\(/.test(artistOnclick), artistOnclick);
   t.check('Zurück-Chip läuft über runJump.', d.getElementById('jumpBackLabel').getAttribute('onclick') === 'runJump(jumpBack)');
   w.switchTab('kuenstler');
   if (!ev("expandedRows.has('Nova Frequenz')")) w.toggleExpand('Nova Frequenz');
