@@ -1,0 +1,62 @@
+{
+ "tests": [
+  "test_testdata_edgecases.js",
+  "test_auswertung_genre.js"
+ ],
+ "mutations": [
+  {
+   "name": "D1 splitTags trennt wieder an jedem Schrägstrich (Hip-Hop/Rap wird zerlegt)",
+   "file": "js/05-filter.js",
+   "old": "split(/\\s+\\/\\s+/).map(s => s.trim())",
+   "new": "split('/').map(s => s.trim())"
+  },
+  {
+   "name": "D2 splitTags trennt auch an einem Schrägstrich ohne Leerzeichen vor/nach",
+   "file": "js/05-filter.js",
+   "old": "split(/\\s+\\/\\s+/).map(s => s.trim())",
+   "new": "split(/\\s*\\/\\s*/).map(s => s.trim())"
+  },
+  {
+   "name": "D3 splitTags trimmt die Teile nicht",
+   "file": "js/05-filter.js",
+   "old": "split(/\\s+\\/\\s+/).map(s => s.trim())",
+   "new": "split(/\\s+\\/\\s+/).map(s => s)"
+  },
+  {
+   "name": "D4 splitTags lässt leere Teile stehen",
+   "file": "js/05-filter.js",
+   "old": ".map(s => s.trim()).filter(Boolean);\n}\n\n// Kurzformen",
+   "new": ".map(s => s.trim());\n}\n\n// Kurzformen"
+  },
+  {
+   "name": "D5 Suche ignoriert Akzente nicht",
+   "file": "js/05-filter.js",
+   "old": ".replace(/[\\u0300-\\u036f]/g, '')",
+   "new": ""
+  },
+  {
+   "name": "D6 Suche unterscheidet Groß-/Kleinschreibung",
+   "file": "js/05-filter.js",
+   "old": ".replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+   "new": ".replace(/[\\u0300-\\u036f]/g, '');"
+  },
+  {
+   "name": "D7 Künstlerliste sortiert nach ASCII statt Gebietsschema",
+   "file": "js/05-filter.js",
+   "old": "return String(av).localeCompare(String(bv), 'de') * sortDir;",
+   "new": "return (String(av) < String(bv) ? -1 : 1) * sortDir;"
+  },
+  {
+   "name": "D8 Mehrere Herkunftsländer werden ohne Leerzeichen verbunden",
+   "file": "js/05-filter.js",
+   "old": ".map(c => COUNTRY_ABBREVIATIONS[c] || c).join(' / ');",
+   "new": ".map(c => COUNTRY_ABBREVIATIONS[c] || c).join('/');"
+  },
+  {
+   "name": "D9 Location-Filter trifft auch Namen mit gleichem Anfang",
+   "file": "js/14-programmliste.js",
+   "old": "!selectedLocs.has(a.location))",
+   "new": "![...selectedLocs].some(l => (a.location || '').startsWith(l)))"
+  }
+ ]
+}

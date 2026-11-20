@@ -36,18 +36,18 @@ const { loadApp, reloadWithState, createChecker, namesInList: namesInListShared 
   w.openProgGenreModal();
   t.check('Modal öffnet sich.', modal.classList.contains('open'));
 
-  // 3) Genre-Liste im Modal enthält die bekannten Testdaten-Genres (z.B. "Techno").
+  // 3) Genre-Liste im Modal enthält die bekannten Testdaten-Genres (z.B. "Electronic/DJ").
   const modalList = d.getElementById('progGenreModalList');
-  t.check('Genre-Liste im Modal enthält erwartete Genres (z.B. "Techno").', modalList.textContent.includes('Techno'));
+  t.check('Genre-Liste im Modal enthält erwartete Genres (z.B. "Electronic/DJ").', modalList.textContent.includes('Electronic/DJ'));
 
-  // 4) Genre auswählen ("Techno", passt zu "Stahl & Beton") -> Liste filtert
+  // 4) Genre auswählen ("Electronic/DJ", passt zu "Stahl & Beton") -> Liste filtert
   // entsprechend, andere Künstler verschwinden.
-  w.toggleProgGenreSelection('Techno');
+  w.toggleProgGenreSelection('Electronic/DJ');
   w.closeModal('progGenreModal');
   const namesAfterFilter = namesInList();
   const hasStahlBeton = namesAfterFilter.some(n => n.includes('Stahl & Beton'));
   const hasNovaFrequenz = namesAfterFilter.some(n => n.includes('Nova Frequenz'));
-  t.check('Filter auf "Techno" zeigt "Stahl & Beton", blendet "Nova Frequenz" (Electro/Pop) aus.',
+  t.check('Filter auf "Electronic/DJ" zeigt "Stahl & Beton", blendet "Nova Frequenz" (Electronic/Live / Pop) aus.',
     hasStahlBeton && !hasNovaFrequenz, { hasStahlBeton, hasNovaFrequenz });
 
   // 5) Events (ohne Genre) verschwinden bei aktivem Genre-Filter (analog zu
@@ -56,8 +56,8 @@ const { loadApp, reloadWithState, createChecker, namesInList: namesInListShared 
   t.check('Sonderveranstaltungen (ohne Genre) werden bei aktivem Genre-Filter ausgeblendet.', !hasEvent);
 
   // 6) Chip erscheint, Button-Text zeigt Anzahl.
-  t.check('Chip "Techno" erscheint, Button zeigt "Genre (1)".',
-    chips.style.display !== 'none' && chips.textContent.includes('Techno') && btn.textContent.includes('Genre (1)'),
+  t.check('Chip "Electronic/DJ" erscheint, Button zeigt "Genre (1)".',
+    chips.style.display !== 'none' && chips.textContent.includes('Electronic/DJ') && btn.textContent.includes('Genre (1)'),
     { chipsDisplay: chips.style.display, chipsText: chips.textContent, btnText: btn.textContent });
 
   // 7) Chip per "✕" wieder entfernen -> Filter zurückgesetzt, alle wieder sichtbar.
@@ -98,10 +98,10 @@ const { loadApp, reloadWithState, createChecker, namesInList: namesInListShared 
   // zusammen mit den übrigen Filtern zurück - analog zu Location/Bewertung/
   // Status/Dauer/Ziel.
   w.getBerlinNow = () => ({ year: 2027, month: 9, day: 17, hour: 14, minute: 0 });
-  w.toggleProgGenreSelection('Techno');
+  w.toggleProgGenreSelection('Electronic/DJ');
   w.jumpToNow(); // 1. Klick: nur Tag/Zeit
   t.check('1. "Jetzt"-Klick lässt den Genre-Filter unangetastet.',
-    btn.textContent.includes('Techno') || btn.textContent.includes('Genre (1)'), btn.textContent);
+    btn.textContent.includes('Electronic/DJ') || btn.textContent.includes('Genre (1)'), btn.textContent);
   w.jumpToNow(); // 2. Klick (bereits auf "jetzt"): auch Genre zurücksetzen
   t.check('2. "Jetzt"-Klick setzt den Genre-Filter korrekt mit zurück.', btn.textContent.includes('Alle Genres'), btn.textContent);
 

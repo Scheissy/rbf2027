@@ -1,0 +1,68 @@
+{
+ "tests": [
+  "test_volume_kuenstler.js",
+  "test_volume_programm.js"
+ ],
+ "mutations": [
+  {
+   "name": "W1 Künstler-Suche ignoriert das Genre",
+   "file": "js/05-filter.js",
+   "old": "|| normalizeSearch(d.genre).includes(f.q) ||",
+   "new": "||"
+  },
+  {
+   "name": "W2 Künstler-Suche ignoriert die Herkunft",
+   "file": "js/05-filter.js",
+   "old": "|| normalizeSearch(d.herkunft).includes(f.q) },",
+   "new": " },"
+  },
+  {
+   "name": "W3 Genre-Filter verlangt ALLE gewählten Genres statt eines",
+   "file": "js/05-filter.js",
+   "old": "splitTags(d.genre).some(g => selectedGenres.has(g)))",
+   "new": "[...selectedGenres].every(g => splitTags(d.genre).includes(g)))"
+  },
+  {
+   "name": "W4 Herkunftsfilter vergleicht die ganze Herkunftsangabe (Mehrfachländer fallen raus)",
+   "file": "js/05-filter.js",
+   "old": "splitTags(d.herkunft).includes(f.fHerkunft) },",
+   "new": "d.herkunft === f.fHerkunft },"
+  },
+  {
+   "name": "W5 Tagesfilter ignoriert den Tag",
+   "file": "js/14-programmliste.js",
+   "old": "{ id: 'day', test: (a, f) => f.days.includes(a.day) },",
+   "new": "{ id: 'day', test: (a, f) => true },"
+  },
+  {
+   "name": "W6 Zeit-Untergrenze wird ignoriert",
+   "file": "js/14-programmliste.js",
+   "old": "if (f.fromVal && timeSortValue(a.time) < timeSortValue(f.fromVal)) return false;",
+   "new": ""
+  },
+  {
+   "name": "W7 Zeit-Obergrenze wird ignoriert",
+   "file": "js/14-programmliste.js",
+   "old": "if (f.toVal && timeSortValue(a.time) > timeSortValue(f.toVal)) return false;",
+   "new": ""
+  },
+  {
+   "name": "W8 Location-Filter ist ein Präfix-Vergleich",
+   "file": "js/14-programmliste.js",
+   "old": "!selectedLocs.has(a.location))",
+   "new": "![...selectedLocs].some(l => (a.location || '').startsWith(l)))"
+  },
+  {
+   "name": "W9 Auftritte nach Mitternacht sortieren an den Tagesanfang (Grenze 5 Uhr -> 0 Uhr)",
+   "file": "js/10-programm.js",
+   "old": "const hh = h < 5 ? h + 24 : h;",
+   "new": "const hh = h;"
+  },
+  {
+   "name": "W10 Programm-Genre-Filter verlangt alle gewählten Genres",
+   "file": "js/14-programmliste.js",
+   "old": "!splitTags(d.genre).some(g => progSelectedGenres.has(g))))",
+   "new": "![...progSelectedGenres].every(g => splitTags(d.genre).includes(g))))"
+  }
+ ]
+}

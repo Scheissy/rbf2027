@@ -18,7 +18,7 @@ const { createHelpers, loadApp, createChecker } = require('./test-helpers');
   // ───────── 1) Datenmodell: optionales 6. Element der RAW-Zeile ─────────
   t.check('Künstler mit Discogs-URL in den Daten: discogsUrl ist übernommen.', ev("dataMap['Nova Frequenz'].discogsUrl") === 'https://www.discogs.com/artist/123-Nova-Frequenz');
   t.check('Künstler ohne 6. Element: discogsUrl ist leer (kein undefined).', ev("dataMap['Stahl & Beton'].discogsUrl") === '');
-  t.check('Alle bisherigen Felder bleiben unverändert (rbfUrl, genre).', ev("dataMap['Nova Frequenz'].rbfUrl") === 'https://example.org/artist/nova-frequenz' && ev("dataMap['Nova Frequenz'].genre") === 'Electro / Pop');
+  t.check('Alle bisherigen Felder bleiben unverändert (rbfUrl, genre).', ev("dataMap['Nova Frequenz'].rbfUrl") === 'https://example.org/artist/nova-frequenz' && ev("dataMap['Nova Frequenz'].genre") === 'Electronic/Live / Pop');
 
   // ───────── 2) Bereinigung ─────────
   const clean = v => w.cleanExternalUrl(v);

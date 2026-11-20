@@ -29,11 +29,11 @@ async function setup(w0) {
   // ── 1) Anker bleibt erhalten, wenn er die neuen Filter weiter erfüllt ────
   {
     const { w, d } = await setup();
-    const oldIdx = domIndex(d, 'nid:10'); // Nordlicht Prozession (Sa, Docks, Post-Rock - eindeutiges Genre)
+    const oldIdx = domIndex(d, 'nid:10'); // Nordlicht Prozession (Sa, Docks, Rock - eindeutiges Genre)
     if (!t.check('Testvoraussetzung: "Nordlicht Prozession" gerendert gefunden.', oldIdx !== -1)) return t.finish();
     mockLayout(w, d, oldIdx); // landet exakt auf dieser Zeile, anchorOffset = 0
     d.getElementById('progList').scrollTop = 999;
-    w.toggleProgGenreSelection('Post-Rock'); // ruft intern renderProg() auf; übrig bleibt nur Nordlicht Prozession
+    w.toggleProgGenreSelection('Rock'); // ruft intern renderProg() auf; übrig bleibt nur Nordlicht Prozession
     t.check('Nach dem Filtern ist nur noch "Nordlicht Prozession" sichtbar (Testvoraussetzung).',
       namesInList(d).length === 1 && namesInList(d)[0].includes('Nordlicht Prozession'), namesInList(d));
     const newIdx = domIndex(d, 'nid:10');
@@ -95,7 +95,7 @@ async function setup(w0) {
     const headerIdx = [...d.getElementById('progList').children].indexOf(dayHeader);
     mockLayout(w, d, headerIdx); // Header liegt exakt an der Oberkante
     d.getElementById('progList').scrollTop = 999;
-    w.toggleProgGenreSelection('Techno'); // entfernt Dov'è Liana; Stahl & Beton (Techno) und DJ Mitternacht (Techno/House) bleiben
+    w.toggleProgGenreSelection('Electronic/DJ'); // entfernt Dov'è Liana; Stahl & Beton (Electronic/DJ) und DJ Mitternacht (Electronic/DJ / Funk) bleiben
     const newIdx = domIndex(d, 'nid:2'); // Stahl & Beton: der chronologisch nähere der beiden Überlebenden
     // anchorOffset beim ursprünglichen Anker (Dov'è Liana, EINE Zeile nach dem
     // Header) war 50 (nicht 0) - genau das beweist, dass wirklich der Auftritt

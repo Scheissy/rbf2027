@@ -1,0 +1,16 @@
+Testdaten realistischer: Mini-Datensatz angeglichen/ergänzt, Gross-Datensatz, splitTags-Fix
+
+- FIX (App): splitTags (js/05-filter.js) trennt nur noch an " / " (Schrägstrich MIT Leerzeichen).
+  Vorher wurden Genres der echten Taxonomie zerlegt: "Hip-Hop/Rap", "Electronic/Live",
+  "Electronic/DJ", "R'n'B/Soul" ergaben Filter/Auswertung "Rap", "Live", "DJ", "Soul" usw.
+- rbf-data.test.js: Herkunft = deutsche Ländernamen (auch "A / B"), Genres = echte Taxonomie;
+  15 Sonderfall-Künstler und 16 Auftritte angehängt (Namensformen, Groß/Klein-/Akzent-Paare,
+  Doppelauftritt am selben Tag, 15-Min- und 4-Stunden-Auftritt, Venues "Hafen"/"Hafen Bar"
+  und "Kiez-Bühne® @ Hinterhof/Garten").
+- Neu: build-volume-data.js + rbf-data.volume.test.js (400 Künstler, 560 Auftritte, 45 Venues,
+  12 Events, 35 Sound-Referenzen; deterministisch, nur erfundene Daten).
+- Neue Tests: test_testdata_edgecases.js (55), test_volume_data.js (38),
+  test_volume_kuenstler.js (14), test_volume_programm.js (19);
+  mutations_testdaten.json (9), mutations_volumen.json (10), alle Mutationen erkannt.
+- Angepasst (Genre-/Namenswerte): test_auswertung_genre (+1 Prüfung), test_discogs_link,
+  test_prog_genre_filter, test_prog_scroll_anchor. TESTS.md ergänzt.
